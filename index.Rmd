@@ -18,16 +18,14 @@ output:
 <br />
 
 ## Open Data companion
-
-The Open Data companion shows the steps R users can follow to retrieve and tidy open data from various government Application Programming Interfaces (APIs). Additional open data sources will be added in the future.
-
-<br />
 Last updated: 5 May 2018
- 
+
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, prompt = FALSE, tidy = TRUE, comment = NA, message = FALSE, warning = FALSE)
 library(knitr)
 ```
+
+The Open Data companion shows the steps R users can follow to retrieve and tidy [open data](http://5stardata.info/en/) from various government Application Programming Interfaces (APIs). Additional open data sources will be added in the future.
 
 <br />
 

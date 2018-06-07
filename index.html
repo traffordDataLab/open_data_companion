@@ -635,14 +635,41 @@ div.tocify {
 <p>The crime and ASB categories listed in the API response are concatenated to make them machine readable so we need pull more human readable categories from the data.police.uk API.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">categories &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="st">&quot;https://data.police.uk/api/crime-categories&quot;</span>)
 categories &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span class="kw">content</span>(categories, <span class="dt">as =</span> <span class="st">&quot;text&quot;</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>))
-<span class="kw">head</span>(categories)</code></pre></div>
-<pre><code>                    url                      name
-1             all-crime                 All crime
-2 anti-social-behaviour     Anti-social behaviour
-3         bicycle-theft             Bicycle theft
-4              burglary                  Burglary
-5 criminal-damage-arson Criminal damage and arson
-6                 drugs                     Drugs</code></pre>
+<span class="kw">head</span>(categories) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">kable</span>()</code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left">url</th>
+<th align="left">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">all-crime</td>
+<td align="left">All crime</td>
+</tr>
+<tr class="even">
+<td align="left">anti-social-behaviour</td>
+<td align="left">Anti-social behaviour</td>
+</tr>
+<tr class="odd">
+<td align="left">bicycle-theft</td>
+<td align="left">Bicycle theft</td>
+</tr>
+<tr class="even">
+<td align="left">burglary</td>
+<td align="left">Burglary</td>
+</tr>
+<tr class="odd">
+<td align="left">criminal-damage-arson</td>
+<td align="left">Criminal damage and arson</td>
+</tr>
+<tr class="even">
+<td align="left">drugs</td>
+<td align="left">Drugs</td>
+</tr>
+</tbody>
+</table>
 <p>Next we’ll create a new data frame using the content that we’ve parsed from the API request.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">results_df &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
   <span class="dt">month =</span> results<span class="op">$</span>month,
@@ -655,9 +682,9 @@ categories &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span 
 <p>Then update it with the readable crime and ASB categories.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">df &lt;-<span class="st"> </span><span class="kw">left_join</span>(results_df, categories, <span class="dt">by =</span> <span class="st">&quot;url&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="dt">category =</span> name, 
     long, lat, location, month)
-<span class="kw">head</span>(df) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Crima and ASB data for Trafford, April 2018&quot;</span>)</code></pre></div>
+<span class="kw">head</span>(df) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Crime and ASB data for Trafford, April 2018&quot;</span>)</code></pre></div>
 <table>
-<caption>Crima and ASB data for Trafford, April 2018</caption>
+<caption>Crime and ASB data for Trafford, April 2018</caption>
 <thead>
 <tr class="header">
 <th align="left">category</th>

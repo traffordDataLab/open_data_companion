@@ -191,7 +191,7 @@ The crime and ASB categories listed in the API response are concatenated to make
 ```{r, tidy = FALSE}
 categories <- GET("https://data.police.uk/api/crime-categories")
 categories <- fromJSON(content(categories, as = "text", encoding = "UTF-8"))
-head(categories)
+head(categories) %>% kable()
 ```
 
 Next we'll create a new data frame using the content that we've parsed from the API request.
@@ -210,7 +210,7 @@ Then update it with the readable crime and ASB categories.
 ```{r}
 df <- left_join(results_df, categories, by = "url") %>% 
       select(category = name, long, lat, location, month)
-head(df) %>% kable(caption = "Crima and ASB data for Trafford, April 2018")
+head(df) %>% kable(caption = "Crime and ASB data for Trafford, April 2018")
 ```
 
 Finally, we'll convert the data frame to a spatial object so that we can check the results by mapping it.

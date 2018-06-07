@@ -1,0 +1,233 @@
+---
+output:
+  html_document:
+    css: styles.css
+    self_contained: TRUE
+    highlight: tango
+    code_folding: hide
+    toc: TRUE
+    toc_float: TRUE
+---
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Open+Sans|Roboto" />
+
+<a href="http://www.trafforddatalab.io" target="_blank"><img src="images/logo.png" style="height:50px;position:absolute;top:15px;left:25px;" border="0"/></a>
+
+<br />
+<br />
+<br />
+
+## Open Data companion
+
+The Open Data companion shows the steps R users can follow to retrieve and tidy open data from various government Application Programming Interfaces (APIs). Additional open data sources will be added in the future.
+
+<br />
+Last updated: 5 May 2018
+ 
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, prompt = FALSE, tidy = TRUE, comment = NA, message = FALSE, warning = FALSE)
+library(knitr)
+```
+
+<br />
+
+## Nomis
+
+[Nomis](https://www.nomisweb.co.uk/) provide labour market, benefit and census data for the United Kingdom. 
+
+You can download data from Nomis in CSV format using their API. To do this we need to construct an API URL by appending a dataset id and search parameters to the following web root: https://www.nomisweb.co.uk/api/v01/dataset/
+
+<small> **NB** Those who prefer to create the API URL automatically can use Nomis' [query data](https://www.nomisweb.co.uk/query/advanced.aspx) interface.</small>
+
+First, let's load the necessary R packages.
+
+```{r, tidy = FALSE}
+library(tidyverse) ; library(jsonlite) ; library(purrr) ; library(stringr)
+```
+
+Then we need to pull the metadata for all of the Nomis datasets that are available to query via the API.
+
+```{r, tidy = FALSE}
+metadata <- fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json", flatten = TRUE) %>%
+  map("keyfamilies") %>%
+  map_df(bind_rows) %>% 
+  unnest(components.dimension) %>% 
+  select(id, name = name.value, description = description.value, parameter = conceptref)
+```
+
+We'd like to obtain the id for the [Claimant count by sex and age](https://www.nomisweb.co.uk/datasets/ucjsa) dataset so let's list all datasets with the keywords 'claimant' and 'age' using a regular expression.
+
+```{r, tidy = FALSE}
+filter(metadata, str_detect(name, regex('^.*?\\b(claimant(s)*)\\b.*?\\bage\\b.*?$', ignore_case = T))) %>%
+  distinct(id, name) %>% 
+  kable(caption = "Nomis datasets with 'claimant' and 'age' keywords")
+```
+
+We are interested in 'Claimant count by sex and age' which has the id of 'NM_162_1'. We can therefore update the API URL with the dataset id: http://www.nomisweb.co.uk/api/v01/dataset/NM_162_1
+
+Next we need to identify the search parameters (or dimensions) available for NM_162_1. Each dataset can have a number of different parameters such as 'date', 'geography', 'gender', and 'measures'. The date parameter can have values like 'latest', 'prevyear' etc. All the other available parameters and their corresponding values need to be identified from the dataset's metadata.
+
+```{r, tidy = FALSE}
+filter(metadata, id == "NM_162_1") %>% 
+  pull(parameter) %>% 
+  kable(col.names = "Parameter", caption = "Available parameters for NM_162_1")
+```
+
+To find which genders are available for the ‘Claimant count by sex and age’ dataset we need to add `gender` to the API URL and `def.sdmx.json` which extracts the codelist for the dataset: https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json 
+
+```{r, tidy=FALSE}
+fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json", flatten = TRUE) %>% 
+  as.data.frame() %>% 
+  unnest() %>%
+  select(description = description.value, value) %>% 
+  kable(caption = "Available categories of gender")
+```
+
+We want 'Total' which has a value of 0. To append this to the API URL we would add `&gender=0`. The ampersand is used to separate each parameter in the query string of the API URL.
+
+To find which geographic areas the claimant count data are available at requires a slight tweak to the API URL to the dataset codelist: https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json
+
+```{r, tidy=FALSE}
+fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json", flatten = TRUE) %>% 
+  as.data.frame() %>% 
+  unnest() %>%
+  select(description = description.value, value) %>% 
+  head() %>% 
+  kable(caption = "First six available geographic areas")
+```
+
+We'd like claimant count data at the '2011 super output areas - lower layer' level so we'd append `&geography=TYPE298` to the API URL
+
+All the parameters we require and the corresponding values of interest are listed below:
+
+* date=latest (latest available period)
+* geography=TYPE298 (2011 super output areas - lower layer)
+* gender=0 (Total)
+* age=0 (All categories: Age 16+)
+* measure=1 (Claimant count)
+* measures=20100 (value)
+
+We can now append all the necessary parameters to the API URL Note that we have added `.data.csv` to the dataset id which is required to pull CSV data from the API. 
+
+https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&geography=TYPE298&gender=0&age=0&measure=1&measures=20100
+
+```{r, tidy = FALSE}
+df <- read_csv("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&geography=TYPE298&gender=0&age=0&measure=1&measures=20100") 
+
+kable(select(df, 1:6) %>% slice(1:6), caption = "Raw claimant count data")
+```
+
+Then we can tidy the results up a little by filtering by Greater Manchester boroughs, creating new variables and renaming others.
+
+```{r, tidy = FALSE}
+df %>% 
+  filter(grepl('Bolton|Bury|Manchester|Oldham|Rochdale|Salford|Stockport|Tameside|Trafford|Wigan', GEOGRAPHY_NAME)) %>% 
+  mutate(date = as.Date(paste('01', DATE_NAME), format = '%d %B %Y'),
+         lad17nm = str_sub(GEOGRAPHY_NAME, 1, str_length(GEOGRAPHY_NAME)-5),
+         measure = "Residents claiming JSA or Universal Credit") %>% 
+  select(date,
+         lsoa11nm = GEOGRAPHY_NAME,
+         lsoa11cd = GEOGRAPHY_CODE, 
+         lad17nm,
+         measure,
+         value = OBS_VALUE) %>% 
+  head() %>% 
+  kable(caption = "Tidy claimant count data")
+```
+
+**Useful resources**
+
+* Nomis API documentation: [https://www.nomisweb.co.uk/api/v01/help](https://www.nomisweb.co.uk/api/v01/help)
+* R package: [nomisr](https://cran.r-project.org/web/packages/nomisr/index.html)
+
+<br />
+
+## data.police.uk
+The [data.police.uk](https://data.police.uk/) website provides incidents of police recorded crime and anti-social behaviour in England, Wales and Northern Ireland.
+
+The data.police.uk API can be used to request incident data for any geographic area of interest. In this example, we are going to extract crime and ASB data for the borough of Trafford.
+
+First, let's load the necessary R packages.
+```{r, tidy = FALSE}
+library(tidyverse) ; library(httr) ; library(jsonlite) ; library(sf)
+```
+
+Now we need to download a vector boundary layer. The code below downloads a generalised vector boundary layer of Local Authority Districts from the [Open Geography Portal](http://geoportal.statistics.gov.uk/) and filters the borough of Trafford.
+
+```{r, tidy = FALSE, results = 'hide', message = FALSE, warning = FALSE}
+bdy <- st_read("https://opendata.arcgis.com/datasets/fab4feab211c4899b602ecfbfbc420a3_3.geojson") %>% 
+  filter(lad17nm == "Trafford")
+```
+
+Next, we extract the coordinates from the boundary layer and format for inclusion in the API URL.
+```{r, tidy = FALSE}
+coords <- bdy %>% 
+  st_coordinates() %>%
+  as.data.frame() %>%
+  select(X, Y) %>% 
+  unite(coords, Y, X, sep = ',') %>% 
+  mutate(coords = sub("$", ":", coords)) %>% 
+  .[["coords"]] %>% 
+  paste(collapse = "") %>% 
+  str_sub(., 1, str_length(.)-1)
+```
+
+We are now ready to construct the API request. This has two parts: the polygon coordinates and a month. The code below requests incidents within the boundary of Trafford recorded in April 2018.
+
+```{r, tidy = FALSE}
+request <- POST(url = "https://data.police.uk/api/crimes-street/all-crime",
+            query = list(poly = coords, date = "2018-04"))
+```
+
+Next, we process the content of the API request ...
+```{r, tidy = FALSE}
+content <- content(request, as = "text", encoding = "UTF-8")
+```
+
+and parse the JSON response.
+```{r, tidy = FALSE}
+results <- fromJSON(txt = content) 
+```
+
+The crime and ASB categories listed in the API response are concatenated to make them machine readable so we need pull more human readable categories from the data.police.uk API.
+```{r, tidy = FALSE}
+categories <- GET("https://data.police.uk/api/crime-categories")
+categories <- fromJSON(content(categories, as = "text", encoding = "UTF-8"))
+head(categories)
+```
+
+Next we'll create a new data frame using the content that we've parsed from the API request.
+```{r, tidy = FALSE}
+results_df <- data.frame(
+  month = results$month,
+  url = results$category,
+  location = results$location$street$name,
+  long = as.numeric(as.character(results$location$longitude)),
+  lat = as.numeric(as.character(results$location$latitude)),
+  stringsAsFactors = FALSE
+)
+```
+
+Then update it with the readable crime and ASB categories.
+```{r}
+df <- left_join(results_df, categories, by = "url") %>% 
+      select(category = name, long, lat, location, month)
+head(df) %>% kable(caption = "Crima and ASB data for Trafford, April 2018")
+```
+
+Finally, we'll convert the data frame to a spatial object so that we can check the results by mapping it.
+```{r, tidy = FALSE}
+sf <- df %>% 
+  st_as_sf(coords = c("long", "lat")) %>% 
+  st_set_crs(4326)
+
+plot(st_geometry(bdy))
+plot(st_geometry(sf), add = T)
+```
+
+**Useful resources**
+
+* data.police.uk API documentation: [https://data.police.uk/docs/](https://data.police.uk/docs/)
+* R package: [ukpolice](http://ukpolice.njtierney.com/)
+
+<br />

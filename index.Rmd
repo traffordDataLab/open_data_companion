@@ -18,14 +18,157 @@ output:
 <br />
 
 ## Open Data companion
-Last updated: 5 May 2018
+Last updated: 11 July 2018
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE, prompt = FALSE, tidy = TRUE, comment = NA, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, prompt = FALSE, tidy = FALSE, comment = NA, message = FALSE, warning = FALSE)
 library(knitr)
 ```
 
-The Open Data companion shows the steps R users can follow to retrieve and tidy [open data](http://5stardata.info/en/) from various government Application Programming Interfaces (APIs). Additional open data sources will be added in the future.
+Governments and other organisations often make [open data](http://5stardata.info/en/) available through Web service Application Programming Interfaces or APIs. The [World Bank](https://datahelpdesk.worldbank.org/knowledgebase/topics/125589), [UK Police](https://data.police.uk/docs/), and [Transport for London](https://api.tfl.gov.uk/) are just a few well-known examples. This document details the steps required to request data from these different Web service APIs using [R](https://cran.r-project.org/). 
+
+Several R packages[^1] have been developed as clients for Web service APIs. These don't assume any knowledge of API endpoints, HTTP requests, or data formats like XML and JSON. These are really convenient but sometimes you want to break into the 'black box' of APIs because you want to learn more or because there isn't an API wrapper package available.
+
+### A quick introduction to APIs
+
+APIs or Application Programming Interfaces are a set of rules that allow one software application to interact with another either in the same location or over a network. Inputs and outputs will vary between APIs but the process is the same: a 'request' that follows certain programmatic rules is submitted and a 'response' containing content in an expected format is returned.
+
+There are many types of API including library-based (e.g. leafletJS) and class-based (e.g. Java) but one of the most common are Web service APIs. A client (browser) submits a Hypertext Transfer Protocol (HTTP) request to a server and the server returns a response to the client. The response contains status information about the request and may also contain the requested content. 
+
+The parameters of an HTTP request are typically contained in the URL. For example, to return a map image of Manchester using the [Google Maps Static API](https://developers.google.com/maps/documentation/maps-static/dev-guide) we would submit the following request:
+
+[https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&zoom=13&size=600x300&maptype=roadmap](https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&zoom=13&size=600x300&maptype=roadmap)
+
+The request contains:
+
+1) a URL to the API endpoint (`https://maps.googleapis.com/maps/api/staticmap?`) and;
+2) a query containing the parameters of the request (`center=Manchester,England&zoom=13&size=600x300&maptype=roadmap`). In this case, we have specified the location, zoom level, size and type of map.
+
+Web service APIs use two key HTTP verbs to enable data requests:  **GET** and **POST**. A GET request is submitted within the URL with each parameter separated by an ampersand (`&`). A POST request is submitted in the message body which is separate from the URL. The advantage of using POST over GET requests is that there are no character limits and the request is more secure becuase it is not stored in the browser's cache.
+
+There are several types of Web service APIs (e.g. XML-RPC, JSON-RPC and SOAP) but the most popular is Representational State Transfer or REST. RESTful APIs can return output as XML, JSON, CSV and several other data formats. 
+
+Each API has documentation and specifications which determine how data can be transferred. Unfortunately, the specifications tend to be different and the documentation can be hard to follow.
+
+### An example API request
+Querying a Web service API typically involves the following steps:
+
+1) submit the request
+2) check for any server error
+3) parse the response
+4) convert to a data frame
+
+In the following example we will submit a request for police reported crime data from the [UK Police](https://www.police.uk/) API. The API uses both HTTP GET and POST requests and provides content in JSON data format.
+
+The two key R packages for submitting HTTP requests to Web service APIs and parsing the content of the response are [httr](https://cran.r-project.org/web/packages/httr/index.html) and [jsonlite](https://cran.r-project.org/web/packages/jsonlite/index.html). Let's load them into our R session.
+```{r, }
+library(tidyverse) ; library(httr) ; library(jsonlite)
+```
+
+We would like to retrieve street level crimes within a mile radius of a specific location so according to the UK Police [API documentation](https://data.police.uk/docs/) we need to use https\://data.police.uk/api/crimes-street/all-crime? as our API endpoint. Rather than 'all-crime' lets narrow our request to retrieve only reports of burglary. This will change our path to: https\://data.police.uk/api/crimes-street/burglary?
+
+```{r}
+path <- "https://data.police.uk/api/crimes-street/burglary?"
+```
+
+Next we need to build our API request and submit it. We will use the `GET` function from the httr package. First we supply the path to the API endpoint and provide search parameters in the form of a list to the `query` argument. There are three parameters available to us:
+
+- `lat` = latitude
+- `lng` = longitude
+- `date` = and optional date in YYYY-MM format
+
+```{r}
+request <- GET(url = path, 
+               query = list(
+                 lat = 53.421813,
+                 lng = -2.330251,
+                 date = "2017-01")
+               )
+```
+
+Next we parse the content returned from the server as text using the `content` function.
+
+```{r}
+response <- content(request, as = "text", encoding = "UTF-8")
+```
+
+Let's check if the API returned an error. If the request fails the API will return a non-200 status code.
+```{r}
+if(request$status_code != 200) stop(response)
+```
+
+Lastly we'll parse the content and and convert it to a data frame.
+```{r}
+df <- fromJSON(response, flatten = TRUE) %>% 
+  data.frame()
+```
+
+```{r, echo = FALSE}
+kable(df %>% select(7,1,11,8,9) %>% slice(1:4), caption = "Burglaries within 1m radius of specified location")
+```
+ 
+### Setup
+
+The following API requests all rely on the [tidyverse](https://cran.r-project.org/web/packages/tidyverse/index.html), [httr](https://cran.r-project.org/web/packages/httr/index.html), and [jsonlite](https://cran.r-project.org/web/packages/jsonlite/index.html) R packages. If you have not installed the packages please do so and then load them into your R session.
+
+```{r}
+# install.packages("tidyverse", "httr", "jsonlite")
+library(tidyverse) ; library(httr) ; library(jsonlite)
+```
+
+<br />
+
+## Food Standards Agency
+
+The [Food Standards Agency](http://ratings.food.gov.uk/) provide food hygiene rating data for the United Kingdom.
+
+***Example***: fast food outlets in Trafford
+
+- **HTTP verb**: GET
+- **API endpoint URL**: [http://api.ratings.food.gov.uk/Establishments](http://api.ratings.food.gov.uk/Establishments)
+- **Selected parameters**: name, address, longitude, latitude, businessTypeId, ratingKey, localAuthorityId etc.
+- **Header(s)**: "x-api-version", 2
+- **Data format(s)**: JSON, XML
+- **Documentation**: [http://api.ratings.food.gov.uk/help](http://api.ratings.food.gov.uk/help)
+
+```{r}
+# submit the request
+request <- GET(url = "http://api.ratings.food.gov.uk/Establishments", 
+             query = list(
+               localAuthorityId = 188,
+               BusinessTypeId = 7844,
+               pageNumber = 1,
+               pageSize = 5000),
+             add_headers("x-api-version" = "2"))
+
+# parse the response
+response <- content(request, as = "text", encoding = "UTF-8") %>% 
+  fromJSON(flatten = TRUE) %>% 
+  pluck("establishments") %>% 
+  as_tibble()
+
+# tidy the data
+df <- response %>% 
+  mutate_all(funs(replace(., . == '', NA))) %>% 
+  select(name = BusinessName,
+         type = BusinessType,
+         address1 = AddressLine1,
+         address2 = AddressLine2,
+         address3 = AddressLine3,
+         address4 = AddressLine4,
+         postcode = PostCode,
+         long = geocode.longitude,
+         lat = geocode.latitude) %>% 
+  unite(address, address1, address2, address3, address4, remove = TRUE, sep = ", ") %>% 
+  mutate(address = str_replace_all(address, "NA,", ""),
+         address = str_replace_all(address, ", NA", ""),
+         long = as.numeric(long),
+         lat = as.numeric(lat))
+```
+
+```{r, echo = FALSE}
+kable(df %>% slice(1:6), caption = "Fast food outlets in Trafford")
+```
 
 <br />
 
@@ -33,19 +176,25 @@ The Open Data companion shows the steps R users can follow to retrieve and tidy 
 
 [Nomis](https://www.nomisweb.co.uk/) provide labour market, benefit and census data for the United Kingdom. 
 
-You can download data from Nomis in CSV format using their API. To do this we need to construct an API URL by appending a dataset id and search parameters to the following web root: https://www.nomisweb.co.uk/api/v01/dataset/
+***Example***: Claimant count data
 
-<small> **NB** Those who prefer to create the API URL automatically can use Nomis' [query data](https://www.nomisweb.co.uk/query/advanced.aspx) interface.</small>
+- **HTTP verb**: GET
+- **API endpoint URL**: https://www.nomisweb.co.uk/api/v01/dataset/
+- **Selected parameters**: 
+- **Header(s)**: NA
+- **Data format(s)**: CSV
+- **Documentation**: [https://www.nomisweb.co.uk/api/v01/help](https://www.nomisweb.co.uk/api/v01/help)
+- **R package**: [nomisr](https://cran.r-project.org/web/packages/nomisr/index.html)
 
 First, let's load the necessary R packages.
 
-```{r, tidy = FALSE}
-library(tidyverse) ; library(jsonlite) ; library(purrr) ; library(stringr)
+```{r}
+library(tidyverse) ; library(httr) ; library(jsonlite) ; library(stringr)
 ```
 
 Then we need to pull the metadata for all of the Nomis datasets that are available to query via the API.
 
-```{r, tidy = FALSE}
+```{r}
 metadata <- fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json", flatten = TRUE) %>%
   map("keyfamilies") %>%
   map_df(bind_rows) %>% 
@@ -55,7 +204,7 @@ metadata <- fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json",
 
 We'd like to obtain the id for the [Claimant count by sex and age](https://www.nomisweb.co.uk/datasets/ucjsa) dataset so let's list all datasets with the keywords 'claimant' and 'age' using a regular expression.
 
-```{r, tidy = FALSE}
+```{r}
 filter(metadata, str_detect(name, regex('^.*?\\b(claimant(s)*)\\b.*?\\bage\\b.*?$', ignore_case = T))) %>%
   distinct(id, name) %>% 
   kable(caption = "Nomis datasets with 'claimant' and 'age' keywords")
@@ -65,7 +214,7 @@ We are interested in 'Claimant count by sex and age' which has the id of 'NM_162
 
 Next we need to identify the search parameters (or dimensions) available for NM_162_1. Each dataset can have a number of different parameters such as 'date', 'geography', 'gender', and 'measures'. The date parameter can have values like 'latest', 'prevyear' etc. All the other available parameters and their corresponding values need to be identified from the dataset's metadata.
 
-```{r, tidy = FALSE}
+```{r}
 filter(metadata, id == "NM_162_1") %>% 
   pull(parameter) %>% 
   kable(col.names = "Parameter", caption = "Available parameters for NM_162_1")
@@ -73,7 +222,7 @@ filter(metadata, id == "NM_162_1") %>%
 
 To find which genders are available for the ‘Claimant count by sex and age’ dataset we need to add `gender` to the API URL and `def.sdmx.json` which extracts the codelist for the dataset: https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json 
 
-```{r, tidy=FALSE}
+```{r}
 fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json", flatten = TRUE) %>% 
   as.data.frame() %>% 
   unnest() %>%
@@ -85,7 +234,7 @@ We want 'Total' which has a value of 0. To append this to the API URL we would a
 
 To find which geographic areas the claimant count data are available at requires a slight tweak to the API URL to the dataset codelist: https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json
 
-```{r, tidy=FALSE}
+```{r}
 fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json", flatten = TRUE) %>% 
   as.data.frame() %>% 
   unnest() %>%
@@ -109,7 +258,7 @@ We can now append all the necessary parameters to the API URL Note that we have 
 
 https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&geography=TYPE298&gender=0&age=0&measure=1&measures=20100
 
-```{r, tidy = FALSE}
+```{r}
 df <- read_csv("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&geography=TYPE298&gender=0&age=0&measure=1&measures=20100") 
 
 kable(select(df, 1:6) %>% slice(1:6), caption = "Raw claimant count data")
@@ -117,7 +266,7 @@ kable(select(df, 1:6) %>% slice(1:6), caption = "Raw claimant count data")
 
 Then we can tidy the results up a little by filtering by Greater Manchester boroughs, creating new variables and renaming others.
 
-```{r, tidy = FALSE}
+```{r}
 df %>% 
   filter(grepl('Bolton|Bury|Manchester|Oldham|Rochdale|Salford|Stockport|Tameside|Trafford|Wigan', GEOGRAPHY_NAME)) %>% 
   mutate(date = as.Date(paste('01', DATE_NAME), format = '%d %B %Y'),
@@ -133,32 +282,31 @@ df %>%
   kable(caption = "Tidy claimant count data")
 ```
 
-**Useful resources**
-
-* Nomis API documentation: [https://www.nomisweb.co.uk/api/v01/help](https://www.nomisweb.co.uk/api/v01/help)
-* R package: [nomisr](https://cran.r-project.org/web/packages/nomisr/index.html)
-
 <br />
 
-## data.police.uk
+## UK Police
+
 The [data.police.uk](https://data.police.uk/) website provides incidents of police recorded crime and anti-social behaviour in England, Wales and Northern Ireland.
 
-The data.police.uk API can be used to request incident data for any geographic area of interest. In this example, we are going to extract crime and ASB data for the borough of Trafford.
+***Example***: Crime and ASB data within the borough of Trafford.
 
-First, let's load the necessary R packages.
-```{r, tidy = FALSE}
+- **HTTP verb**: GET or POST
+- **API endpoint URL**: https://data.police.uk/api/crimes-street/all-crime?
+- **Selected parameters**: poly, date
+- **Header(s)**: NA
+- **Data format(s)**: JSON
+- **Documentation**: [https://data.police.uk/docs/](https://data.police.uk/docs/)
+
+
+```{r}
+# load the necessary R packages
 library(tidyverse) ; library(httr) ; library(jsonlite) ; library(sf)
-```
 
-Now we need to download a vector boundary layer. The code below downloads a generalised vector boundary layer of Local Authority Districts from the [Open Geography Portal](http://geoportal.statistics.gov.uk/) and filters the borough of Trafford.
-
-```{r, tidy = FALSE, results = 'hide', message = FALSE, warning = FALSE}
-bdy <- st_read("https://opendata.arcgis.com/datasets/fab4feab211c4899b602ecfbfbc420a3_3.geojson") %>% 
+# download a vector boundary of Trafford
+bdy <- st_read("https://opendata.arcgis.com/datasets/fab4feab211c4899b602ecfbfbc420a3_3.geojson", quiet = TRUE) %>% 
   filter(lad17nm == "Trafford")
-```
 
-Next, we extract the coordinates from the boundary layer and format for inclusion in the API URL.
-```{r, tidy = FALSE}
+# extract the coordinates and format for inclusion in the API request parameter
 coords <- bdy %>% 
   st_coordinates() %>%
   as.data.frame() %>%
@@ -168,64 +316,32 @@ coords <- bdy %>%
   .[["coords"]] %>% 
   paste(collapse = "") %>% 
   str_sub(., 1, str_length(.)-1)
-```
 
-We are now ready to construct the API request. This has two parts: the polygon coordinates and a month. The code below requests incidents within the boundary of Trafford recorded in April 2018.
-
-```{r, tidy = FALSE}
+# sumbit the API request
 request <- POST(url = "https://data.police.uk/api/crimes-street/all-crime",
-            query = list(poly = coords, date = "2018-04"))
-```
+                query = list(poly = coords, date = "2018-04"))
 
-Next, we process the content of the API request ...
-```{r, tidy = FALSE}
+# process the content
 content <- content(request, as = "text", encoding = "UTF-8")
-```
 
-and parse the JSON response.
-```{r, tidy = FALSE}
-results <- fromJSON(txt = content) 
-```
+# parse the response
+results <- fromJSON(txt = content, flatten = TRUE) 
 
-The crime and ASB categories listed in the API response are concatenated to make them machine readable so we need pull more human readable categories from the data.police.uk API.
-```{r, tidy = FALSE}
-categories <- GET("https://data.police.uk/api/crime-categories")
-categories <- fromJSON(content(categories, as = "text", encoding = "UTF-8"))
-head(categories) %>% kable()
-```
-
-Next we'll create a new data frame using the content that we've parsed from the API request.
-```{r, tidy = FALSE}
-results_df <- data.frame(
+# convert to a data frame
+df <- data.frame(
   month = results$month,
-  url = results$category,
-  location = results$location$street$name,
-  long = as.numeric(as.character(results$location$longitude)),
-  lat = as.numeric(as.character(results$location$latitude)),
+  category = results$category,
+  location = results$location.street.name,
+  long = as.numeric(as.character(results$location.longitude)),
+  lat = as.numeric(as.character(results$location.latitude)),
   stringsAsFactors = FALSE
 )
 ```
 
-Then update it with the readable crime and ASB categories.
-```{r}
-df <- left_join(results_df, categories, by = "url") %>% 
-      select(category = name, long, lat, location, month)
+```{r, echo = FALSE}
 head(df) %>% kable(caption = "Crime and ASB data for Trafford, April 2018")
 ```
 
-Finally, we'll convert the data frame to a spatial object so that we can check the results by mapping it.
-```{r, tidy = FALSE}
-sf <- df %>% 
-  st_as_sf(coords = c("long", "lat")) %>% 
-  st_set_crs(4326)
-
-plot(st_geometry(bdy))
-plot(st_geometry(sf), add = T)
-```
-
-**Useful resources**
-
-* data.police.uk API documentation: [https://data.police.uk/docs/](https://data.police.uk/docs/)
-* R package: [ukpolice](http://ukpolice.njtierney.com/)
-
 <br />
+
+[^1]: Examples include [eurostat](https://cran.r-project.org/web/packages/eurostat/index.html), [fingertipsR](https://cran.r-project.org/web/packages/fingertipsR/index.html), and [WHO](https://cran.r-project.org/web/packages/WHO/index.html)

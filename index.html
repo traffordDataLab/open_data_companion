@@ -285,10 +285,10 @@ div.tocify {
 <p><a href="https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&amp;zoom=13&amp;size=600x300&amp;maptype=roadmap" class="uri">https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&amp;zoom=13&amp;size=600x300&amp;maptype=roadmap</a></p>
 <p>The request contains:</p>
 <ol style="list-style-type: decimal">
-<li>a URL to the API endpoint (<code>https://maps.googleapis.com/maps/api/staticmap?</code>) and;</li>
-<li>a query containing the parameters of the request (<code>center=Manchester,England&amp;zoom=13&amp;size=600x300&amp;maptype=roadmap</code>). In this case, we have specified the location, zoom level, size and type of map.</li>
+<li>a URL to the API endpoint (https://maps.googleapis.com/maps/api/staticmap?) and;</li>
+<li>a query containing the parameters of the request (center=Manchester,England&amp;zoom=13&amp;size=600x300&amp;maptype=roadmap). In this case, we have specified the location, zoom level, size and type of map.</li>
 </ol>
-<p>Web service APIs use two key HTTP verbs to enable data requests: <strong>GET</strong> and <strong>POST</strong>. A GET request is submitted within the URL with each parameter separated by an ampersand (<code>&amp;</code>). A POST request is submitted in the message body which is separate from the URL. The advantage of using POST over GET requests is that there are no character limits and the request is more secure becuase it is not stored in the browser’s cache.</p>
+<p>Web service APIs use two key HTTP verbs to enable data requests: <strong>GET</strong> and <strong>POST</strong>. A GET request is submitted within the URL with each parameter separated by an ampersand (<code>&amp;</code>). A POST request is submitted in the message body which is separate from the URL. The advantage of using POST over GET requests is that there are no character limits and the request is more secure because it is not stored in the browser’s cache.</p>
 <p>There are several types of Web service APIs (e.g. XML-RPC, JSON-RPC and SOAP) but the most popular is Representational State Transfer or REST. RESTful APIs can return output as XML, JSON, CSV and several other data formats.</p>
 <p>Each API has documentation and specifications which determine how data can be transferred. Unfortunately, the specifications tend to be different and the documentation can be hard to follow.</p>
 </div>
@@ -368,13 +368,13 @@ div.tocify {
 </tbody>
 </table>
 </div>
-<div id="setup" class="section level3">
-<h3>Setup</h3>
+</div>
+<div id="setup" class="section level2">
+<h2>Setup</h2>
 <p>The following API requests all rely on the <a href="https://cran.r-project.org/web/packages/tidyverse/index.html">tidyverse</a>, <a href="https://cran.r-project.org/web/packages/httr/index.html">httr</a>, and <a href="https://cran.r-project.org/web/packages/jsonlite/index.html">jsonlite</a> R packages. If you have not installed the packages please do so and then load them into your R session.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># install.packages(&quot;tidyverse&quot;, &quot;httr&quot;, &quot;jsonlite&quot;)</span>
 <span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite)</code></pre></div>
 <p><br /></p>
-</div>
 </div>
 <div id="food-standards-agency" class="section level2">
 <h2>Food Standards Agency</h2>

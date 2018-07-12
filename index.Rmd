@@ -41,10 +41,10 @@ The parameters of an HTTP request are typically contained in the URL. For exampl
 
 The request contains:
 
-1) a URL to the API endpoint (`https://maps.googleapis.com/maps/api/staticmap?`) and;
-2) a query containing the parameters of the request (`center=Manchester,England&zoom=13&size=600x300&maptype=roadmap`). In this case, we have specified the location, zoom level, size and type of map.
+1) a URL to the API endpoint (https\://maps.googleapis.com/maps/api/staticmap?) and;
+2) a query containing the parameters of the request (center=Manchester,England&zoom=13&size=600x300&maptype=roadmap). In this case, we have specified the location, zoom level, size and type of map.
 
-Web service APIs use two key HTTP verbs to enable data requests:  **GET** and **POST**. A GET request is submitted within the URL with each parameter separated by an ampersand (`&`). A POST request is submitted in the message body which is separate from the URL. The advantage of using POST over GET requests is that there are no character limits and the request is more secure becuase it is not stored in the browser's cache.
+Web service APIs use two key HTTP verbs to enable data requests:  **GET** and **POST**. A GET request is submitted within the URL with each parameter separated by an ampersand (`&`). A POST request is submitted in the message body which is separate from the URL. The advantage of using POST over GET requests is that there are no character limits and the request is more secure because it is not stored in the browser's cache.
 
 There are several types of Web service APIs (e.g. XML-RPC, JSON-RPC and SOAP) but the most popular is Representational State Transfer or REST. RESTful APIs can return output as XML, JSON, CSV and several other data formats. 
 
@@ -107,7 +107,7 @@ df <- fromJSON(response, flatten = TRUE) %>%
 kable(df %>% select(7,1,11,8,9) %>% slice(1:4), caption = "Burglaries within 1m radius of specified location")
 ```
  
-### Setup
+## Setup
 
 The following API requests all rely on the [tidyverse](https://cran.r-project.org/web/packages/tidyverse/index.html), [httr](https://cran.r-project.org/web/packages/httr/index.html), and [jsonlite](https://cran.r-project.org/web/packages/jsonlite/index.html) R packages. If you have not installed the packages please do so and then load them into your R session.
 

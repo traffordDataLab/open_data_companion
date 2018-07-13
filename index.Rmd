@@ -18,7 +18,7 @@ output:
 <br />
 
 ## Open Data companion
-Last updated: 11 July 2018
+Last updated: 13 July 2018
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, prompt = FALSE, tidy = FALSE, comment = NA, message = FALSE, warning = FALSE)
@@ -35,7 +35,7 @@ APIs or Application Programming Interfaces are a set of rules that allow one sof
 
 There are many types of API including library-based (e.g. leafletJS) and class-based (e.g. Java) but one of the most common are Web service APIs. A client (browser) submits a Hypertext Transfer Protocol (HTTP) request to a server and the server returns a response to the client. The response contains status information about the request and may also contain the requested content. 
 
-The parameters of an HTTP request are typically contained in the URL. For example, to return a map image of Manchester using the [Google Maps Static API](https://developers.google.com/maps/documentation/maps-static/dev-guide) we would submit the following request:
+The parameters of an HTTP request are typically contained in the URL. For example, to return a map of Manchester using the [Google Maps Static API](https://developers.google.com/maps/documentation/maps-static/dev-guide) we would submit the following request:
 
 [https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&zoom=13&size=600x300&maptype=roadmap](https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&zoom=13&size=600x300&maptype=roadmap)
 
@@ -60,12 +60,13 @@ Querying a Web service API typically involves the following steps:
 
 In the following example we will submit a request for police reported crime data from the [UK Police](https://www.police.uk/) API. The API uses both HTTP GET and POST requests and provides content in JSON data format.
 
-The two key R packages for submitting HTTP requests to Web service APIs and parsing the content of the response are [httr](https://cran.r-project.org/web/packages/httr/index.html) and [jsonlite](https://cran.r-project.org/web/packages/jsonlite/index.html). Let's load them into our R session.
+The two key R packages for submitting HTTP requests to Web service APIs and parsing the content of the response are [httr](https://cran.r-project.org/web/packages/httr/index.html) and [jsonlite](https://cran.r-project.org/web/packages/jsonlite/index.html). Let's load them into our R session. The [tidyverse](https://cran.r-project.org/web/packages/tidyverse/index.html) package is also loaded because it contains a suite of useful functions.
+
 ```{r, }
 library(tidyverse) ; library(httr) ; library(jsonlite)
 ```
 
-We would like to retrieve street level crimes within a mile radius of a specific location so according to the UK Police [API documentation](https://data.police.uk/docs/) we need to use https\://data.police.uk/api/crimes-street/all-crime? as our API endpoint. Rather than 'all-crime' lets narrow our request to retrieve only reports of burglary. This will change our path to: https\://data.police.uk/api/crimes-street/burglary?
+We would like to retrieve street level crimes within a mile radius of a specific location so we need to use https\://data.police.uk/api/crimes-street/all-crime? as our API endpoint (see [API documentation](https://data.police.uk/docs/)). Rather than retrieving 'all-crime' lets narrow our request to retrieve only reports of burglary. This will change our path to: https\://data.police.uk/api/crimes-street/burglary?
 
 ```{r}
 path <- "https://data.police.uk/api/crimes-street/burglary?"
@@ -82,38 +83,49 @@ request <- GET(url = path,
                query = list(
                  lat = 53.421813,
                  lng = -2.330251,
-                 date = "2017-01")
+                 date = "2018-05")
                )
 ```
 
-Next we parse the content returned from the server as text using the `content` function.
+Let's check if the API returned an error. If the request fails the API will return a non-200 status code.
+```{r, eval = FALSE}
+request$status_code
+```
 
+Next we parse the content returned from the server as text using the `content` function.
 ```{r}
 response <- content(request, as = "text", encoding = "UTF-8")
 ```
 
-Let's check if the API returned an error. If the request fails the API will return a non-200 status code.
-```{r}
-if(request$status_code != 200) stop(response)
-```
-
-Lastly we'll parse the content and and convert it to a data frame.
+Then we'll parse the JSON content and and convert it to a data frame.
 ```{r}
 df <- fromJSON(response, flatten = TRUE) %>% 
   data.frame()
 ```
 
-```{r, echo = FALSE}
-kable(df %>% select(7,1,11,8,9) %>% slice(1:4), caption = "Burglaries within 1m radius of specified location")
+Finally, we might strip out some of the variables and rename the remaining.
+```{r}
+df <- select(df,
+             month, category, 
+             location = location.street.name,
+             long = location.longitude,
+             lat = location.latitude)
 ```
- 
+
+```{r, echo = FALSE}
+kable(df %>% slice(1:4), caption = "Burglaries within 1m radius of specified location")
+```
+
+That's it. We've submitted a request to the Police UK API and parsed the response into a data frame ready for use in R.
+
+<br />
+
 ## Setup
 
-The following API requests all rely on the [tidyverse](https://cran.r-project.org/web/packages/tidyverse/index.html), [httr](https://cran.r-project.org/web/packages/httr/index.html), and [jsonlite](https://cran.r-project.org/web/packages/jsonlite/index.html) R packages. If you have not installed the packages please do so and then load them into your R session.
+The following API requests all rely on the [tidyverse](https://cran.r-project.org/web/packages/tidyverse/index.html), [httr](https://cran.r-project.org/web/packages/httr/index.html), and [jsonlite](https://cran.r-project.org/web/packages/jsonlite/index.html) R packages. Make sure that you have installed them.
 
-```{r}
-# install.packages("tidyverse", "httr", "jsonlite")
-library(tidyverse) ; library(httr) ; library(jsonlite)
+```{r, eval = FALSE}
+install.packages("tidyverse", "httr", "jsonlite")
 ```
 
 <br />
@@ -125,15 +137,19 @@ The [Food Standards Agency](http://ratings.food.gov.uk/) provide food hygiene ra
 ***Example***: fast food outlets in Trafford
 
 - **HTTP verb**: GET
-- **API endpoint URL**: [http://api.ratings.food.gov.uk/Establishments](http://api.ratings.food.gov.uk/Establishments)
-- **Selected parameters**: name, address, longitude, latitude, businessTypeId, ratingKey, localAuthorityId etc.
-- **Header(s)**: "x-api-version", 2
+- **API endpoint URL**: http\://api.ratings.food.gov.uk/Establishments
+- **Selected parameters**: name, address, longitude, latitude, businessTypeId, ratingKey, localAuthorityId
+- **Headers**: "x-api-version", 2
 - **Data format(s)**: JSON, XML
-- **Documentation**: [http://api.ratings.food.gov.uk/help](http://api.ratings.food.gov.uk/help)
+- **Documentation**: http\://api.ratings.food.gov.uk/help
 
 ```{r}
+# load the necessary R packages
+library(tidyverse) ; library(httr) ; library(jsonlite)
+
 # submit the request
-request <- GET(url = "http://api.ratings.food.gov.uk/Establishments", 
+path <- "http://api.ratings.food.gov.uk/Establishments"
+request <- GET(url = path, 
              query = list(
                localAuthorityId = 188,
                BusinessTypeId = 7844,
@@ -141,7 +157,10 @@ request <- GET(url = "http://api.ratings.food.gov.uk/Establishments",
                pageSize = 5000),
              add_headers("x-api-version" = "2"))
 
-# parse the response
+# check for any server error
+# request$status_code
+
+# parse the response and convert to a data frame
 response <- content(request, as = "text", encoding = "UTF-8") %>% 
   fromJSON(flatten = TRUE) %>% 
   pluck("establishments") %>% 
@@ -176,110 +195,75 @@ kable(df %>% slice(1:6), caption = "Fast food outlets in Trafford")
 
 [Nomis](https://www.nomisweb.co.uk/) provide labour market, benefit and census data for the United Kingdom. 
 
-***Example***: Claimant count data
+***Example***: [Claimant count](https://www.nomisweb.co.uk/datasets/ucjsa) in Trafford for the last 13 months
 
-- **HTTP verb**: GET
-- **API endpoint URL**: https://www.nomisweb.co.uk/api/v01/dataset/
-- **Selected parameters**: 
-- **Header(s)**: NA
-- **Data format(s)**: CSV
-- **Documentation**: [https://www.nomisweb.co.uk/api/v01/help](https://www.nomisweb.co.uk/api/v01/help)
+- **HTTP verb**: GET and POST
+- **API endpoint URL**: https\://www.nomisweb.co.uk/api/v01/dataset/
+- **Selected parameters**: date, geography, gender, age, measure and measures
+- **Headers**: NA
+- **Data format(s)**: JSON, CSV, xls
+- **Documentation**: [https\://www.nomisweb.co.uk/api/v01/help](https://www.nomisweb.co.uk/api/v01/help)
 - **R package**: [nomisr](https://cran.r-project.org/web/packages/nomisr/index.html)
 
-First, let's load the necessary R packages.
-
 ```{r}
-library(tidyverse) ; library(httr) ; library(jsonlite) ; library(stringr)
-```
+# load the necessary packages
+library(tidyverse) ; library(httr) ; library(jsonlite)
 
-Then we need to pull the metadata for all of the Nomis datasets that are available to query via the API.
-
-```{r}
-metadata <- fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json", flatten = TRUE) %>%
+# retrieve the name, id and available parameters for all Nomis datasets with 'claimant' as a keyword
+datasets <- fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json", flatten = TRUE) %>%
   map("keyfamilies") %>%
   map_df(bind_rows) %>% 
   unnest(components.dimension) %>% 
-  select(id, name = name.value, description = description.value, parameter = conceptref)
-```
+  select(id, name = name.value, description = description.value, parameter = conceptref) %>% 
+  filter(stringr::str_detect(name, regex('^.*?\\b(claimant(s)*)\\b.*?\\bage\\b.*?$', ignore_case = T))) %>%
+  distinct(id, name)
 
-We'd like to obtain the id for the [Claimant count by sex and age](https://www.nomisweb.co.uk/datasets/ucjsa) dataset so let's list all datasets with the keywords 'claimant' and 'age' using a regular expression.
+# alternatively try the following link in your browser: https://www.nomisweb.co.uk/api/v01/dataset/def.htm?search=*claimant*
 
-```{r}
-filter(metadata, str_detect(name, regex('^.*?\\b(claimant(s)*)\\b.*?\\bage\\b.*?$', ignore_case = T))) %>%
-  distinct(id, name) %>% 
-  kable(caption = "Nomis datasets with 'claimant' and 'age' keywords")
-```
+# retrieve the codelists for all the available parameters for the 'NM_162_1' dataset
+parameters <- c("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json",
+           "https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/age/def.sdmx.json",
+           "https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/measure/def.sdmx.json",
+           "https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/measures/def.sdmx.json") %>%
+  map_df(~fromJSON(., flatten = TRUE) %>% 
+           as.data.frame() %>% 
+           unnest() %>% 
+           select(parameter = structure.codelists.codelist.name.value, 
+                  description = description.value, value))
 
-We are interested in 'Claimant count by sex and age' which has the id of 'NM_162_1'. We can therefore update the API URL with the dataset id: http://www.nomisweb.co.uk/api/v01/dataset/NM_162_1
+# submit the request
+# note that .data.json is appended to the path because we want data in JSON format
+path <- "https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.json?"
+request <- GET(url = path, 
+             query = list(
+               date = "latestMINUS12-latest",
+               geography = "E08000009",
+               gender = 0,
+               age = 0,
+               measure = 1,
+               measures = 20100))
 
-Next we need to identify the search parameters (or dimensions) available for NM_162_1. Each dataset can have a number of different parameters such as 'date', 'geography', 'gender', and 'measures'. The date parameter can have values like 'latest', 'prevyear' etc. All the other available parameters and their corresponding values need to be identified from the dataset's metadata.
+# check for any server error
+# request$status_code
 
-```{r}
-filter(metadata, id == "NM_162_1") %>% 
-  pull(parameter) %>% 
-  kable(col.names = "Parameter", caption = "Available parameters for NM_162_1")
-```
+# parse the response and convert to a data frame
+response <- content(request, as = "text", encoding = "UTF-8") %>% 
+  fromJSON(flatten = TRUE) %>% 
+  pluck("obs") %>% 
+  as_tibble()
 
-To find which genders are available for the ‘Claimant count by sex and age’ dataset we need to add `gender` to the API URL and `def.sdmx.json` which extracts the codelist for the dataset: https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json 
-
-```{r}
-fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json", flatten = TRUE) %>% 
-  as.data.frame() %>% 
-  unnest() %>%
-  select(description = description.value, value) %>% 
-  kable(caption = "Available categories of gender")
-```
-
-We want 'Total' which has a value of 0. To append this to the API URL we would add `&gender=0`. The ampersand is used to separate each parameter in the query string of the API URL.
-
-To find which geographic areas the claimant count data are available at requires a slight tweak to the API URL to the dataset codelist: https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json
-
-```{r}
-fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json", flatten = TRUE) %>% 
-  as.data.frame() %>% 
-  unnest() %>%
-  select(description = description.value, value) %>% 
-  head() %>% 
-  kable(caption = "First six available geographic areas")
-```
-
-We'd like claimant count data at the '2011 super output areas - lower layer' level so we'd append `&geography=TYPE298` to the API URL
-
-All the parameters we require and the corresponding values of interest are listed below:
-
-* date=latest (latest available period)
-* geography=TYPE298 (2011 super output areas - lower layer)
-* gender=0 (Total)
-* age=0 (All categories: Age 16+)
-* measure=1 (Claimant count)
-* measures=20100 (value)
-
-We can now append all the necessary parameters to the API URL Note that we have added `.data.csv` to the dataset id which is required to pull CSV data from the API. 
-
-https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&geography=TYPE298&gender=0&age=0&measure=1&measures=20100
-
-```{r}
-df <- read_csv("https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&geography=TYPE298&gender=0&age=0&measure=1&measures=20100") 
-
-kable(select(df, 1:6) %>% slice(1:6), caption = "Raw claimant count data")
-```
-
-Then we can tidy the results up a little by filtering by Greater Manchester boroughs, creating new variables and renaming others.
-
-```{r}
-df %>% 
-  filter(grepl('Bolton|Bury|Manchester|Oldham|Rochdale|Salford|Stockport|Tameside|Trafford|Wigan', GEOGRAPHY_NAME)) %>% 
-  mutate(date = as.Date(paste('01', DATE_NAME), format = '%d %B %Y'),
-         lad17nm = str_sub(GEOGRAPHY_NAME, 1, str_length(GEOGRAPHY_NAME)-5),
-         measure = "Residents claiming JSA or Universal Credit") %>% 
+# tidy the data
+df <- response %>% 
+  mutate(date = as.Date(paste0(time.value, '-01'), format = '%Y-%m-%d')) %>% 
   select(date,
-         lsoa11nm = GEOGRAPHY_NAME,
-         lsoa11cd = GEOGRAPHY_CODE, 
-         lad17nm,
-         measure,
-         value = OBS_VALUE) %>% 
-  head() %>% 
-  kable(caption = "Tidy claimant count data")
+         area_name = geography.description,
+         area_code = geography.geogcode,
+         measure = measure.description,
+         n = obs_value.value)
+```
+
+```{r, echo = FALSE}
+kable(df %>% arrange(desc(date)), caption = "Count of claimants in  Trafford")
 ```
 
 <br />
@@ -288,15 +272,15 @@ df %>%
 
 The [data.police.uk](https://data.police.uk/) website provides incidents of police recorded crime and anti-social behaviour in England, Wales and Northern Ireland.
 
-***Example***: Crime and ASB data within the borough of Trafford.
+***Example***: Robberies within the borough of Trafford
 
-- **HTTP verb**: GET or POST
-- **API endpoint URL**: https://data.police.uk/api/crimes-street/all-crime?
+- **HTTP verb**: GET or POST. However, use POST for large / high resolution polygons because of a 4094 character limit with GET requests.
+- **API endpoint URL**: https\://data.police.uk/api/crimes-street/all-crime?
 - **Selected parameters**: poly, date
-- **Header(s)**: NA
+- **Headers**: NA
 - **Data format(s)**: JSON
-- **Documentation**: [https://data.police.uk/docs/](https://data.police.uk/docs/)
-
+- **Documentation**: [https/://data.police.uk/docs/](https://data.police.uk/docs/)
+- **R package**: [ukpolice](http://ukpolice.njtierney.com/)
 
 ```{r}
 # load the necessary R packages
@@ -318,28 +302,31 @@ coords <- bdy %>%
   str_sub(., 1, str_length(.)-1)
 
 # sumbit the API request
-request <- POST(url = "https://data.police.uk/api/crimes-street/all-crime",
+path <- "https://data.police.uk/api/crimes-street/robbery"
+request <- POST(url = path,
                 query = list(poly = coords, date = "2018-04"))
 
-# process the content
-content <- content(request, as = "text", encoding = "UTF-8")
+# check for any server error
+# request$status_code
 
-# parse the response
-results <- fromJSON(txt = content, flatten = TRUE) 
+# parse the response and convert to a data frame
+response <- content(request, as = "text", encoding = "UTF-8") %>% 
+  fromJSON(flatten = TRUE) %>% 
+  as_tibble()
 
 # convert to a data frame
 df <- data.frame(
-  month = results$month,
-  category = results$category,
-  location = results$location.street.name,
-  long = as.numeric(as.character(results$location.longitude)),
-  lat = as.numeric(as.character(results$location.latitude)),
+  month = response$month,
+  category = response$category,
+  location = response$location.street.name,
+  long = as.numeric(as.character(response$location.longitude)),
+  lat = as.numeric(as.character(response$location.latitude)),
   stringsAsFactors = FALSE
 )
 ```
 
 ```{r, echo = FALSE}
-head(df) %>% kable(caption = "Crime and ASB data for Trafford, April 2018")
+head(df) %>% kable(caption = "Robberies in Trafford")
 ```
 
 <br />

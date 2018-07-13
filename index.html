@@ -274,14 +274,14 @@ div.tocify {
 <p><br /> <br /> <br /></p>
 <div id="open-data-companion" class="section level2">
 <h2>Open Data companion</h2>
-<p>Last updated: 11 July 2018</p>
+<p>Last updated: 13 July 2018</p>
 <p>Governments and other organisations often make <a href="http://5stardata.info/en/">open data</a> available through Web service Application Programming Interfaces or APIs. The <a href="https://datahelpdesk.worldbank.org/knowledgebase/topics/125589">World Bank</a>, <a href="https://data.police.uk/docs/">UK Police</a>, and <a href="https://api.tfl.gov.uk/">Transport for London</a> are just a few well-known examples. This document details the steps required to request data from these different Web service APIs using <a href="https://cran.r-project.org/">R</a>.</p>
 <p>Several R packages<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> have been developed as clients for Web service APIs. These don’t assume any knowledge of API endpoints, HTTP requests, or data formats like XML and JSON. These are really convenient but sometimes you want to break into the ‘black box’ of APIs because you want to learn more or because there isn’t an API wrapper package available.</p>
 <div id="a-quick-introduction-to-apis" class="section level3">
 <h3>A quick introduction to APIs</h3>
 <p>APIs or Application Programming Interfaces are a set of rules that allow one software application to interact with another either in the same location or over a network. Inputs and outputs will vary between APIs but the process is the same: a ‘request’ that follows certain programmatic rules is submitted and a ‘response’ containing content in an expected format is returned.</p>
 <p>There are many types of API including library-based (e.g. leafletJS) and class-based (e.g. Java) but one of the most common are Web service APIs. A client (browser) submits a Hypertext Transfer Protocol (HTTP) request to a server and the server returns a response to the client. The response contains status information about the request and may also contain the requested content.</p>
-<p>The parameters of an HTTP request are typically contained in the URL. For example, to return a map image of Manchester using the <a href="https://developers.google.com/maps/documentation/maps-static/dev-guide">Google Maps Static API</a> we would submit the following request:</p>
+<p>The parameters of an HTTP request are typically contained in the URL. For example, to return a map of Manchester using the <a href="https://developers.google.com/maps/documentation/maps-static/dev-guide">Google Maps Static API</a> we would submit the following request:</p>
 <p><a href="https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&amp;zoom=13&amp;size=600x300&amp;maptype=roadmap" class="uri">https://maps.googleapis.com/maps/api/staticmap?center=Manchester,England&amp;zoom=13&amp;size=600x300&amp;maptype=roadmap</a></p>
 <p>The request contains:</p>
 <ol style="list-style-type: decimal">
@@ -302,9 +302,9 @@ div.tocify {
 <li>convert to a data frame</li>
 </ol>
 <p>In the following example we will submit a request for police reported crime data from the <a href="https://www.police.uk/">UK Police</a> API. The API uses both HTTP GET and POST requests and provides content in JSON data format.</p>
-<p>The two key R packages for submitting HTTP requests to Web service APIs and parsing the content of the response are <a href="https://cran.r-project.org/web/packages/httr/index.html">httr</a> and <a href="https://cran.r-project.org/web/packages/jsonlite/index.html">jsonlite</a>. Let’s load them into our R session.</p>
+<p>The two key R packages for submitting HTTP requests to Web service APIs and parsing the content of the response are <a href="https://cran.r-project.org/web/packages/httr/index.html">httr</a> and <a href="https://cran.r-project.org/web/packages/jsonlite/index.html">jsonlite</a>. Let’s load them into our R session. The <a href="https://cran.r-project.org/web/packages/tidyverse/index.html">tidyverse</a> package is also loaded because it contains a suite of useful functions.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite)</code></pre></div>
-<p>We would like to retrieve street level crimes within a mile radius of a specific location so according to the UK Police <a href="https://data.police.uk/docs/">API documentation</a> we need to use https://data.police.uk/api/crimes-street/all-crime? as our API endpoint. Rather than ‘all-crime’ lets narrow our request to retrieve only reports of burglary. This will change our path to: https://data.police.uk/api/crimes-street/burglary?</p>
+<p>We would like to retrieve street level crimes within a mile radius of a specific location so we need to use https://data.police.uk/api/crimes-street/all-crime? as our API endpoint (see <a href="https://data.police.uk/docs/">API documentation</a>). Rather than retrieving ‘all-crime’ lets narrow our request to retrieve only reports of burglary. This will change our path to: https://data.police.uk/api/crimes-street/burglary?</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">path &lt;-<span class="st"> &quot;https://data.police.uk/api/crimes-street/burglary?&quot;</span></code></pre></div>
 <p>Next we need to build our API request and submit it. We will use the <code>GET</code> function from the httr package. First we supply the path to the API endpoint and provide search parameters in the form of a list to the <code>query</code> argument. There are three parameters available to us:</p>
 <ul>
@@ -316,64 +316,71 @@ div.tocify {
                <span class="dt">query =</span> <span class="kw">list</span>(
                  <span class="dt">lat =</span> <span class="fl">53.421813</span>,
                  <span class="dt">lng =</span> <span class="op">-</span><span class="fl">2.330251</span>,
-                 <span class="dt">date =</span> <span class="st">&quot;2017-01&quot;</span>)
+                 <span class="dt">date =</span> <span class="st">&quot;2018-05&quot;</span>)
                )</code></pre></div>
+<p>Let’s check if the API returned an error. If the request fails the API will return a non-200 status code.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">request<span class="op">$</span>status_code</code></pre></div>
 <p>Next we parse the content returned from the server as text using the <code>content</code> function.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">response &lt;-<span class="st"> </span><span class="kw">content</span>(request, <span class="dt">as =</span> <span class="st">&quot;text&quot;</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)</code></pre></div>
-<p>Let’s check if the API returned an error. If the request fails the API will return a non-200 status code.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">if</span>(request<span class="op">$</span>status_code <span class="op">!=</span><span class="st"> </span><span class="dv">200</span>) <span class="kw">stop</span>(response)</code></pre></div>
-<p>Lastly we’ll parse the content and and convert it to a data frame.</p>
+<p>Then we’ll parse the JSON content and and convert it to a data frame.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">df &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(response, <span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">data.frame</span>()</code></pre></div>
+<p>Finally, we might strip out some of the variables and rename the remaining.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">df &lt;-<span class="st"> </span><span class="kw">select</span>(df,
+             month, category, 
+             <span class="dt">location =</span> location.street.name,
+             <span class="dt">long =</span> location.longitude,
+             <span class="dt">lat =</span> location.latitude)</code></pre></div>
 <table>
 <caption>Burglaries within 1m radius of specified location</caption>
 <thead>
 <tr class="header">
 <th align="left">month</th>
 <th align="left">category</th>
-<th align="left">location.street.name</th>
-<th align="left">location.latitude</th>
-<th align="left">location.longitude</th>
+<th align="left">location</th>
+<th align="left">long</th>
+<th align="left">lat</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">2017-01</td>
+<td align="left">2018-05</td>
 <td align="left">burglary</td>
-<td align="left">On or near Willoughby Close</td>
-<td align="left">53.427765</td>
-<td align="left">-2.332045</td>
+<td align="left">On or near Priory Road</td>
+<td align="left">-2.308988</td>
+<td align="left">53.427603</td>
 </tr>
 <tr class="even">
-<td align="left">2017-01</td>
+<td align="left">2018-05</td>
 <td align="left">burglary</td>
-<td align="left">On or near Wynnstay Road</td>
-<td align="left">53.425714</td>
-<td align="left">-2.322774</td>
+<td align="left">On or near Beaufort Avenue</td>
+<td align="left">-2.314616</td>
+<td align="left">53.415363</td>
 </tr>
 <tr class="odd">
-<td align="left">2017-01</td>
+<td align="left">2018-05</td>
 <td align="left">burglary</td>
-<td align="left">On or near Benbow Street</td>
-<td align="left">53.424761</td>
-<td align="left">-2.322857</td>
+<td align="left">On or near Trinity Avenue</td>
+<td align="left">-2.307520</td>
+<td align="left">53.420236</td>
 </tr>
 <tr class="even">
-<td align="left">2017-01</td>
+<td align="left">2018-05</td>
 <td align="left">burglary</td>
-<td align="left">On or near School Road</td>
-<td align="left">53.424707</td>
-<td align="left">-2.319606</td>
+<td align="left">On or near Hyde Grove</td>
+<td align="left">-2.323764</td>
+<td align="left">53.421289</td>
 </tr>
 </tbody>
 </table>
+<p>That’s it. We’ve submitted a request to the Police UK API and parsed the response into a data frame ready for use in R.</p>
+<p><br /></p>
 </div>
 </div>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<p>The following API requests all rely on the <a href="https://cran.r-project.org/web/packages/tidyverse/index.html">tidyverse</a>, <a href="https://cran.r-project.org/web/packages/httr/index.html">httr</a>, and <a href="https://cran.r-project.org/web/packages/jsonlite/index.html">jsonlite</a> R packages. If you have not installed the packages please do so and then load them into your R session.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># install.packages(&quot;tidyverse&quot;, &quot;httr&quot;, &quot;jsonlite&quot;)</span>
-<span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite)</code></pre></div>
+<p>The following API requests all rely on the <a href="https://cran.r-project.org/web/packages/tidyverse/index.html">tidyverse</a>, <a href="https://cran.r-project.org/web/packages/httr/index.html">httr</a>, and <a href="https://cran.r-project.org/web/packages/jsonlite/index.html">jsonlite</a> R packages. Make sure that you have installed them.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">install.packages</span>(<span class="st">&quot;tidyverse&quot;</span>, <span class="st">&quot;httr&quot;</span>, <span class="st">&quot;jsonlite&quot;</span>)</code></pre></div>
 <p><br /></p>
 </div>
 <div id="food-standards-agency" class="section level2">
@@ -382,14 +389,18 @@ div.tocify {
 <p><strong><em>Example</em></strong>: fast food outlets in Trafford</p>
 <ul>
 <li><strong>HTTP verb</strong>: GET</li>
-<li><strong>API endpoint URL</strong>: <a href="http://api.ratings.food.gov.uk/Establishments" class="uri">http://api.ratings.food.gov.uk/Establishments</a></li>
-<li><strong>Selected parameters</strong>: name, address, longitude, latitude, businessTypeId, ratingKey, localAuthorityId etc.</li>
-<li><strong>Header(s)</strong>: “x-api-version”, 2</li>
+<li><strong>API endpoint URL</strong>: http://api.ratings.food.gov.uk/Establishments</li>
+<li><strong>Selected parameters</strong>: name, address, longitude, latitude, businessTypeId, ratingKey, localAuthorityId</li>
+<li><strong>Headers</strong>: “x-api-version”, 2</li>
 <li><strong>Data format(s)</strong>: JSON, XML</li>
-<li><strong>Documentation</strong>: <a href="http://api.ratings.food.gov.uk/help" class="uri">http://api.ratings.food.gov.uk/help</a></li>
+<li><strong>Documentation</strong>: http://api.ratings.food.gov.uk/help</li>
 </ul>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># submit the request</span>
-request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> <span class="st">&quot;http://api.ratings.food.gov.uk/Establishments&quot;</span>, 
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># load the necessary R packages</span>
+<span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite)
+
+<span class="co"># submit the request</span>
+path &lt;-<span class="st"> &quot;http://api.ratings.food.gov.uk/Establishments&quot;</span>
+request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path, 
              <span class="dt">query =</span> <span class="kw">list</span>(
                <span class="dt">localAuthorityId =</span> <span class="dv">188</span>,
                <span class="dt">BusinessTypeId =</span> <span class="dv">7844</span>,
@@ -397,7 +408,10 @@ request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="d
                <span class="dt">pageSize =</span> <span class="dv">5000</span>),
              <span class="kw">add_headers</span>(<span class="st">&quot;x-api-version&quot;</span> =<span class="st"> &quot;2&quot;</span>))
 
-<span class="co"># parse the response</span>
+<span class="co"># check for any server error</span>
+<span class="co"># request$status_code</span>
+
+<span class="co"># parse the response and convert to a data frame</span>
 response &lt;-<span class="st"> </span><span class="kw">content</span>(request, <span class="dt">as =</span> <span class="st">&quot;text&quot;</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">fromJSON</span>(<span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">pluck</span>(<span class="st">&quot;establishments&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
@@ -488,332 +502,172 @@ df &lt;-<span class="st"> </span>response <span class="op">%&gt;%</span><span cl
 <div id="nomis" class="section level2">
 <h2>Nomis</h2>
 <p><a href="https://www.nomisweb.co.uk/">Nomis</a> provide labour market, benefit and census data for the United Kingdom.</p>
-<p><strong><em>Example</em></strong>: Claimant count data</p>
+<p><strong><em>Example</em></strong>: <a href="https://www.nomisweb.co.uk/datasets/ucjsa">Claimant count</a> in Trafford for the last 13 months</p>
 <ul>
-<li><strong>HTTP verb</strong>: GET</li>
-<li><strong>API endpoint URL</strong>: <a href="https://www.nomisweb.co.uk/api/v01/dataset/" class="uri">https://www.nomisweb.co.uk/api/v01/dataset/</a></li>
-<li><strong>Selected parameters</strong>:</li>
-<li><strong>Header(s)</strong>: NA</li>
-<li><strong>Data format(s)</strong>: CSV</li>
+<li><strong>HTTP verb</strong>: GET and POST</li>
+<li><strong>API endpoint URL</strong>: https://www.nomisweb.co.uk/api/v01/dataset/</li>
+<li><strong>Selected parameters</strong>: date, geography, gender, age, measure and measures</li>
+<li><strong>Headers</strong>: NA</li>
+<li><strong>Data format(s)</strong>: JSON, CSV, xls</li>
 <li><strong>Documentation</strong>: <a href="https://www.nomisweb.co.uk/api/v01/help" class="uri">https://www.nomisweb.co.uk/api/v01/help</a></li>
 <li><strong>R package</strong>: <a href="https://cran.r-project.org/web/packages/nomisr/index.html">nomisr</a></li>
 </ul>
-<p>First, let’s load the necessary R packages.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite) ; <span class="kw">library</span>(stringr)</code></pre></div>
-<p>Then we need to pull the metadata for all of the Nomis datasets that are available to query via the API.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">metadata &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json&quot;</span>, <span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># load the necessary packages</span>
+<span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite)
+
+<span class="co"># retrieve the name, id and available parameters for all Nomis datasets with 'claimant' as a keyword</span>
+datasets &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json&quot;</span>, <span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">map</span>(<span class="st">&quot;keyfamilies&quot;</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">map_df</span>(bind_rows) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">unnest</span>(components.dimension) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">select</span>(id, <span class="dt">name =</span> name.value, <span class="dt">description =</span> description.value, <span class="dt">parameter =</span> conceptref)</code></pre></div>
-<p>We’d like to obtain the id for the <a href="https://www.nomisweb.co.uk/datasets/ucjsa">Claimant count by sex and age</a> dataset so let’s list all datasets with the keywords ‘claimant’ and ‘age’ using a regular expression.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">filter</span>(metadata, <span class="kw">str_detect</span>(name, <span class="kw">regex</span>(<span class="st">'^.*?</span><span class="ch">\\</span><span class="st">b(claimant(s)*)</span><span class="ch">\\</span><span class="st">b.*?</span><span class="ch">\\</span><span class="st">bage</span><span class="ch">\\</span><span class="st">b.*?$'</span>, <span class="dt">ignore_case =</span> T))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">distinct</span>(id, name) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Nomis datasets with 'claimant' and 'age' keywords&quot;</span>)</code></pre></div>
-<table>
-<caption>Nomis datasets with ‘claimant’ and ‘age’ keywords</caption>
-<thead>
-<tr class="header">
-<th align="left">id</th>
-<th align="left">name</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">NM_2_1</td>
-<td align="left">claimant count - age and duration</td>
-</tr>
-<tr class="even">
-<td align="left">NM_7_1</td>
-<td align="left">claimant count - occupation, age and duration</td>
-</tr>
-<tr class="odd">
-<td align="left">NM_68_1</td>
-<td align="left">benefit claimants 5% data - working age client group</td>
-</tr>
-<tr class="even">
-<td align="left">NM_69_1</td>
-<td align="left">benefit claimants 5% data - working age families</td>
-</tr>
-<tr class="odd">
-<td align="left">NM_70_1</td>
-<td align="left">benefit claimants 5% data - children of working age clients</td>
-</tr>
-<tr class="even">
-<td align="left">NM_71_1</td>
-<td align="left">benefit claimants 5% data - pensionable age</td>
-</tr>
-<tr class="odd">
-<td align="left">NM_103_1</td>
-<td align="left">benefit claimants - working age clients for small areas</td>
-</tr>
-<tr class="even">
-<td align="left">NM_105_1</td>
-<td align="left">benefit claimants - working age client group</td>
-</tr>
-<tr class="odd">
-<td align="left">NM_162_1</td>
-<td align="left">Claimant count by sex and age</td>
-</tr>
-</tbody>
-</table>
-<p>We are interested in ‘Claimant count by sex and age’ which has the id of ‘NM_162_1’. We can therefore update the API URL with the dataset id: <a href="http://www.nomisweb.co.uk/api/v01/dataset/NM_162_1" class="uri">http://www.nomisweb.co.uk/api/v01/dataset/NM_162_1</a></p>
-<p>Next we need to identify the search parameters (or dimensions) available for NM_162_1. Each dataset can have a number of different parameters such as ‘date’, ‘geography’, ‘gender’, and ‘measures’. The date parameter can have values like ‘latest’, ‘prevyear’ etc. All the other available parameters and their corresponding values need to be identified from the dataset’s metadata.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">filter</span>(metadata, id <span class="op">==</span><span class="st"> &quot;NM_162_1&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">pull</span>(parameter) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">kable</span>(<span class="dt">col.names =</span> <span class="st">&quot;Parameter&quot;</span>, <span class="dt">caption =</span> <span class="st">&quot;Available parameters for NM_162_1&quot;</span>)</code></pre></div>
-<table>
-<caption>Available parameters for NM_162_1</caption>
-<thead>
-<tr class="header">
-<th align="left">Parameter</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">GEOGRAPHY</td>
-</tr>
-<tr class="even">
-<td align="left">GENDER</td>
-</tr>
-<tr class="odd">
-<td align="left">AGE</td>
-</tr>
-<tr class="even">
-<td align="left">MEASURE</td>
-</tr>
-<tr class="odd">
-<td align="left">MEASURES</td>
-</tr>
-<tr class="even">
-<td align="left">FREQ</td>
-</tr>
-</tbody>
-</table>
-<p>To find which genders are available for the ‘Claimant count by sex and age’ dataset we need to add <code>gender</code> to the API URL and <code>def.sdmx.json</code> which extracts the codelist for the dataset: <a href="https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json" class="uri">https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json</a></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">fromJSON</span>(<span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json&quot;</span>, <span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">as.data.frame</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">unnest</span>() <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">select</span>(<span class="dt">description =</span> description.value, value) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Available categories of gender&quot;</span>)</code></pre></div>
-<table>
-<caption>Available categories of gender</caption>
-<thead>
-<tr class="header">
-<th align="left">description</th>
-<th align="right">value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">Total</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">Male</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">Female</td>
-<td align="right">2</td>
-</tr>
-</tbody>
-</table>
-<p>We want ‘Total’ which has a value of 0. To append this to the API URL we would add <code>&amp;gender=0</code>. The ampersand is used to separate each parameter in the query string of the API URL.</p>
-<p>To find which geographic areas the claimant count data are available at requires a slight tweak to the API URL to the dataset codelist: <a href="https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json" class="uri">https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json</a></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">fromJSON</span>(<span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/geography/TYPE/def.sdmx.json&quot;</span>, <span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">as.data.frame</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">unnest</span>() <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">select</span>(<span class="dt">description =</span> description.value, value) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">head</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;First six available geographic areas&quot;</span>)</code></pre></div>
-<table>
-<caption>First six available geographic areas</caption>
-<thead>
-<tr class="header">
-<th align="left">description</th>
-<th align="left">value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">jobcentre plus group as of April 2018</td>
-<td align="left">TYPE83</td>
-</tr>
-<tr class="even">
-<td align="left">jobcentre plus district as of April 2018</td>
-<td align="left">TYPE84</td>
-</tr>
-<tr class="odd">
-<td align="left">live jobcentre plus offices</td>
-<td align="left">TYPE86</td>
-</tr>
-<tr class="even">
-<td align="left">major towns and cities</td>
-<td align="left">TYPE225</td>
-</tr>
-<tr class="odd">
-<td align="left">2011 scottish datazones</td>
-<td align="left">TYPE231</td>
-</tr>
-<tr class="even">
-<td align="left">2011 scottish intermediate zones</td>
-<td align="left">TYPE232</td>
-</tr>
-</tbody>
-</table>
-<p>We’d like claimant count data at the ‘2011 super output areas - lower layer’ level so we’d append <code>&amp;geography=TYPE298</code> to the API URL</p>
-<p>All the parameters we require and the corresponding values of interest are listed below:</p>
-<ul>
-<li>date=latest (latest available period)</li>
-<li>geography=TYPE298 (2011 super output areas - lower layer)</li>
-<li>gender=0 (Total)</li>
-<li>age=0 (All categories: Age 16+)</li>
-<li>measure=1 (Claimant count)</li>
-<li>measures=20100 (value)</li>
-</ul>
-<p>We can now append all the necessary parameters to the API URL Note that we have added <code>.data.csv</code> to the dataset id which is required to pull CSV data from the API.</p>
-<p><a href="https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&amp;geography=TYPE298&amp;gender=0&amp;age=0&amp;measure=1&amp;measures=20100" class="uri">https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&amp;geography=TYPE298&amp;gender=0&amp;age=0&amp;measure=1&amp;measures=20100</a></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">df &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.csv?date=latest&amp;geography=TYPE298&amp;gender=0&amp;age=0&amp;measure=1&amp;measures=20100&quot;</span>) 
+<span class="st">  </span><span class="kw">select</span>(id, <span class="dt">name =</span> name.value, <span class="dt">description =</span> description.value, <span class="dt">parameter =</span> conceptref) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">filter</span>(stringr<span class="op">::</span><span class="kw">str_detect</span>(name, <span class="kw">regex</span>(<span class="st">'^.*?</span><span class="ch">\\</span><span class="st">b(claimant(s)*)</span><span class="ch">\\</span><span class="st">b.*?</span><span class="ch">\\</span><span class="st">bage</span><span class="ch">\\</span><span class="st">b.*?$'</span>, <span class="dt">ignore_case =</span> T))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">distinct</span>(id, name)
 
-<span class="kw">kable</span>(<span class="kw">select</span>(df, <span class="dv">1</span><span class="op">:</span><span class="dv">6</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">slice</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>), <span class="dt">caption =</span> <span class="st">&quot;Raw claimant count data&quot;</span>)</code></pre></div>
-<table>
-<caption>Raw claimant count data</caption>
-<thead>
-<tr class="header">
-<th align="left">DATE</th>
-<th align="left">DATE_NAME</th>
-<th align="left">DATE_CODE</th>
-<th align="left">DATE_TYPE</th>
-<th align="right">DATE_TYPECODE</th>
-<th align="right">DATE_SORTORDER</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">2018-05</td>
-<td align="left">May 2018</td>
-<td align="left">2018-05</td>
-<td align="left">date</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">2018-05</td>
-<td align="left">May 2018</td>
-<td align="left">2018-05</td>
-<td align="left">date</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">2018-05</td>
-<td align="left">May 2018</td>
-<td align="left">2018-05</td>
-<td align="left">date</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">2018-05</td>
-<td align="left">May 2018</td>
-<td align="left">2018-05</td>
-<td align="left">date</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">2018-05</td>
-<td align="left">May 2018</td>
-<td align="left">2018-05</td>
-<td align="left">date</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">2018-05</td>
-<td align="left">May 2018</td>
-<td align="left">2018-05</td>
-<td align="left">date</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-</tbody>
-</table>
-<p>Then we can tidy the results up a little by filtering by Greater Manchester boroughs, creating new variables and renaming others.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">df <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">filter</span>(<span class="kw">grepl</span>(<span class="st">'Bolton|Bury|Manchester|Oldham|Rochdale|Salford|Stockport|Tameside|Trafford|Wigan'</span>, GEOGRAPHY_NAME)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">date =</span> <span class="kw">as.Date</span>(<span class="kw">paste</span>(<span class="st">'01'</span>, DATE_NAME), <span class="dt">format =</span> <span class="st">'%d %B %Y'</span>),
-         <span class="dt">lad17nm =</span> <span class="kw">str_sub</span>(GEOGRAPHY_NAME, <span class="dv">1</span>, <span class="kw">str_length</span>(GEOGRAPHY_NAME)<span class="op">-</span><span class="dv">5</span>),
-         <span class="dt">measure =</span> <span class="st">&quot;Residents claiming JSA or Universal Credit&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="co"># alternatively try the following link in your browser: https://www.nomisweb.co.uk/api/v01/dataset/def.htm?search=*claimant*</span>
+
+<span class="co"># retrieve the codelists for all the available parameters for the 'NM_162_1' dataset</span>
+parameters &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/gender/def.sdmx.json&quot;</span>,
+           <span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/age/def.sdmx.json&quot;</span>,
+           <span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/measure/def.sdmx.json&quot;</span>,
+           <span class="st">&quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1/measures/def.sdmx.json&quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">map_df</span>(<span class="op">~</span><span class="kw">fromJSON</span>(., <span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">           </span><span class="kw">as.data.frame</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">           </span><span class="kw">unnest</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">           </span><span class="kw">select</span>(<span class="dt">parameter =</span> structure.codelists.codelist.name.value, 
+                  <span class="dt">description =</span> description.value, value))
+
+<span class="co"># submit the request</span>
+<span class="co"># note that .data.json is appended to the path because we want data in JSON format</span>
+path &lt;-<span class="st"> &quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.json?&quot;</span>
+request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path, 
+             <span class="dt">query =</span> <span class="kw">list</span>(
+               <span class="dt">date =</span> <span class="st">&quot;latestMINUS12-latest&quot;</span>,
+               <span class="dt">geography =</span> <span class="st">&quot;E08000009&quot;</span>,
+               <span class="dt">gender =</span> <span class="dv">0</span>,
+               <span class="dt">age =</span> <span class="dv">0</span>,
+               <span class="dt">measure =</span> <span class="dv">1</span>,
+               <span class="dt">measures =</span> <span class="dv">20100</span>))
+
+<span class="co"># check for any server error</span>
+<span class="co"># request$status_code</span>
+
+<span class="co"># parse the response and convert to a data frame</span>
+response &lt;-<span class="st"> </span><span class="kw">content</span>(request, <span class="dt">as =</span> <span class="st">&quot;text&quot;</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">fromJSON</span>(<span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">pluck</span>(<span class="st">&quot;obs&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">as_tibble</span>()
+
+<span class="co"># tidy the data</span>
+df &lt;-<span class="st"> </span>response <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">date =</span> <span class="kw">as.Date</span>(<span class="kw">paste0</span>(time.value, <span class="st">'-01'</span>), <span class="dt">format =</span> <span class="st">'%Y-%m-%d'</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">select</span>(date,
-         <span class="dt">lsoa11nm =</span> GEOGRAPHY_NAME,
-         <span class="dt">lsoa11cd =</span> GEOGRAPHY_CODE, 
-         lad17nm,
-         measure,
-         <span class="dt">value =</span> OBS_VALUE) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">head</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Tidy claimant count data&quot;</span>)</code></pre></div>
+         <span class="dt">area_name =</span> geography.description,
+         <span class="dt">area_code =</span> geography.geogcode,
+         <span class="dt">measure =</span> measure.description,
+         <span class="dt">n =</span> obs_value.value)</code></pre></div>
 <table>
-<caption>Tidy claimant count data</caption>
+<caption>Count of claimants in Trafford</caption>
 <thead>
 <tr class="header">
 <th align="left">date</th>
-<th align="left">lsoa11nm</th>
-<th align="left">lsoa11cd</th>
-<th align="left">lad17nm</th>
+<th align="left">area_name</th>
+<th align="left">area_code</th>
 <th align="left">measure</th>
-<th align="right">value</th>
+<th align="right">n</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">2018-05-01</td>
-<td align="left">Bolton 001A</td>
-<td align="left">E01004768</td>
-<td align="left">Bolton</td>
-<td align="left">Residents claiming JSA or Universal Credit</td>
-<td align="right">5</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">3015</td>
 </tr>
 <tr class="even">
-<td align="left">2018-05-01</td>
-<td align="left">Bolton 001B</td>
-<td align="left">E01004803</td>
-<td align="left">Bolton</td>
-<td align="left">Residents claiming JSA or Universal Credit</td>
-<td align="right">5</td>
+<td align="left">2018-04-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">3195</td>
 </tr>
 <tr class="odd">
-<td align="left">2018-05-01</td>
-<td align="left">Bolton 001C</td>
-<td align="left">E01004804</td>
-<td align="left">Bolton</td>
-<td align="left">Residents claiming JSA or Universal Credit</td>
-<td align="right">5</td>
+<td align="left">2018-03-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2975</td>
 </tr>
 <tr class="even">
-<td align="left">2018-05-01</td>
-<td align="left">Bolton 001D</td>
-<td align="left">E01004807</td>
-<td align="left">Bolton</td>
-<td align="left">Residents claiming JSA or Universal Credit</td>
-<td align="right">10</td>
+<td align="left">2018-02-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2920</td>
 </tr>
 <tr class="odd">
-<td align="left">2018-05-01</td>
-<td align="left">Bolton 001E</td>
-<td align="left">E01004808</td>
-<td align="left">Bolton</td>
-<td align="left">Residents claiming JSA or Universal Credit</td>
-<td align="right">5</td>
+<td align="left">2018-01-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2675</td>
 </tr>
 <tr class="even">
-<td align="left">2018-05-01</td>
-<td align="left">Bolton 002A</td>
-<td align="left">E01004788</td>
-<td align="left">Bolton</td>
-<td align="left">Residents claiming JSA or Universal Credit</td>
-<td align="right">5</td>
+<td align="left">2017-12-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2520</td>
+</tr>
+<tr class="odd">
+<td align="left">2017-11-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2460</td>
+</tr>
+<tr class="even">
+<td align="left">2017-10-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2490</td>
+</tr>
+<tr class="odd">
+<td align="left">2017-09-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2405</td>
+</tr>
+<tr class="even">
+<td align="left">2017-08-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2335</td>
+</tr>
+<tr class="odd">
+<td align="left">2017-07-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2300</td>
+</tr>
+<tr class="even">
+<td align="left">2017-06-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2320</td>
+</tr>
+<tr class="odd">
+<td align="left">2017-05-01</td>
+<td align="left">Trafford</td>
+<td align="left">E08000009</td>
+<td align="left">Claimant count</td>
+<td align="right">2375</td>
 </tr>
 </tbody>
 </table>
@@ -822,14 +676,15 @@ df &lt;-<span class="st"> </span>response <span class="op">%&gt;%</span><span cl
 <div id="uk-police" class="section level2">
 <h2>UK Police</h2>
 <p>The <a href="https://data.police.uk/">data.police.uk</a> website provides incidents of police recorded crime and anti-social behaviour in England, Wales and Northern Ireland.</p>
-<p><strong><em>Example</em></strong>: Crime and ASB data within the borough of Trafford.</p>
+<p><strong><em>Example</em></strong>: Robberies within the borough of Trafford</p>
 <ul>
-<li><strong>HTTP verb</strong>: GET or POST</li>
-<li><strong>API endpoint URL</strong>: <a href="https://data.police.uk/api/crimes-street/all-crime" class="uri">https://data.police.uk/api/crimes-street/all-crime</a>?</li>
+<li><strong>HTTP verb</strong>: GET or POST. However, use POST for large / high resolution polygons because of a 4094 character limit with GET requests.</li>
+<li><strong>API endpoint URL</strong>: https://data.police.uk/api/crimes-street/all-crime?</li>
 <li><strong>Selected parameters</strong>: poly, date</li>
-<li><strong>Header(s)</strong>: NA</li>
+<li><strong>Headers</strong>: NA</li>
 <li><strong>Data format(s)</strong>: JSON</li>
-<li><strong>Documentation</strong>: <a href="https://data.police.uk/docs/" class="uri">https://data.police.uk/docs/</a></li>
+<li><strong>Documentation</strong>: <a href="https://data.police.uk/docs/">https/://data.police.uk/docs/</a></li>
+<li><strong>R package</strong>: <a href="http://ukpolice.njtierney.com/">ukpolice</a></li>
 </ul>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># load the necessary R packages</span>
 <span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite) ; <span class="kw">library</span>(sf)
@@ -850,26 +705,29 @@ coords &lt;-<span class="st"> </span>bdy <span class="op">%&gt;%</span><span cla
 <span class="st">  </span><span class="kw">str_sub</span>(., <span class="dv">1</span>, <span class="kw">str_length</span>(.)<span class="op">-</span><span class="dv">1</span>)
 
 <span class="co"># sumbit the API request</span>
-request &lt;-<span class="st"> </span><span class="kw">POST</span>(<span class="dt">url =</span> <span class="st">&quot;https://data.police.uk/api/crimes-street/all-crime&quot;</span>,
+path &lt;-<span class="st"> &quot;https://data.police.uk/api/crimes-street/robbery&quot;</span>
+request &lt;-<span class="st"> </span><span class="kw">POST</span>(<span class="dt">url =</span> path,
                 <span class="dt">query =</span> <span class="kw">list</span>(<span class="dt">poly =</span> coords, <span class="dt">date =</span> <span class="st">&quot;2018-04&quot;</span>))
 
-<span class="co"># process the content</span>
-content &lt;-<span class="st"> </span><span class="kw">content</span>(request, <span class="dt">as =</span> <span class="st">&quot;text&quot;</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>)
+<span class="co"># check for any server error</span>
+<span class="co"># request$status_code</span>
 
-<span class="co"># parse the response</span>
-results &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span class="dt">txt =</span> content, <span class="dt">flatten =</span> <span class="ot">TRUE</span>) 
+<span class="co"># parse the response and convert to a data frame</span>
+response &lt;-<span class="st"> </span><span class="kw">content</span>(request, <span class="dt">as =</span> <span class="st">&quot;text&quot;</span>, <span class="dt">encoding =</span> <span class="st">&quot;UTF-8&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">fromJSON</span>(<span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">as_tibble</span>()
 
 <span class="co"># convert to a data frame</span>
 df &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
-  <span class="dt">month =</span> results<span class="op">$</span>month,
-  <span class="dt">category =</span> results<span class="op">$</span>category,
-  <span class="dt">location =</span> results<span class="op">$</span>location.street.name,
-  <span class="dt">long =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(results<span class="op">$</span>location.longitude)),
-  <span class="dt">lat =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(results<span class="op">$</span>location.latitude)),
+  <span class="dt">month =</span> response<span class="op">$</span>month,
+  <span class="dt">category =</span> response<span class="op">$</span>category,
+  <span class="dt">location =</span> response<span class="op">$</span>location.street.name,
+  <span class="dt">long =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(response<span class="op">$</span>location.longitude)),
+  <span class="dt">lat =</span> <span class="kw">as.numeric</span>(<span class="kw">as.character</span>(response<span class="op">$</span>location.latitude)),
   <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>
 )</code></pre></div>
 <table>
-<caption>Crime and ASB data for Trafford, April 2018</caption>
+<caption>Robberies in Trafford</caption>
 <thead>
 <tr class="header">
 <th align="left">month</th>
@@ -882,45 +740,45 @@ df &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
 <tbody>
 <tr class="odd">
 <td align="left">2018-04</td>
-<td align="left">anti-social-behaviour</td>
-<td align="left">On or near Sports/recreation Area</td>
-<td align="right">-2.291367</td>
-<td align="right">53.46310</td>
+<td align="left">robbery</td>
+<td align="left">On or near Parking Area</td>
+<td align="right">-2.352642</td>
+<td align="right">53.38522</td>
 </tr>
 <tr class="even">
 <td align="left">2018-04</td>
-<td align="left">anti-social-behaviour</td>
-<td align="left">On or near Supermarket</td>
-<td align="right">-2.391744</td>
-<td align="right">53.44875</td>
+<td align="left">robbery</td>
+<td align="left">On or near School Road</td>
+<td align="right">-2.319606</td>
+<td align="right">53.42471</td>
 </tr>
 <tr class="odd">
 <td align="left">2018-04</td>
-<td align="left">anti-social-behaviour</td>
-<td align="left">On or near Petrol Station</td>
-<td align="right">-2.355641</td>
-<td align="right">53.45823</td>
+<td align="left">robbery</td>
+<td align="left">On or near Crescent Road</td>
+<td align="right">-2.343565</td>
+<td align="right">53.37457</td>
 </tr>
 <tr class="even">
 <td align="left">2018-04</td>
-<td align="left">anti-social-behaviour</td>
-<td align="left">On or near Handel Mews</td>
-<td align="right">-2.316533</td>
-<td align="right">53.42026</td>
+<td align="left">robbery</td>
+<td align="left">On or near Padbury Close</td>
+<td align="right">-2.396574</td>
+<td align="right">53.45163</td>
 </tr>
 <tr class="odd">
 <td align="left">2018-04</td>
-<td align="left">anti-social-behaviour</td>
-<td align="left">On or near Fernleigh Drive</td>
-<td align="right">-2.264872</td>
-<td align="right">53.46306</td>
+<td align="left">robbery</td>
+<td align="left">On or near Cecil Road</td>
+<td align="right">-2.345447</td>
+<td align="right">53.37487</td>
 </tr>
 <tr class="even">
 <td align="left">2018-04</td>
-<td align="left">anti-social-behaviour</td>
-<td align="left">On or near Hickton Drive</td>
-<td align="right">-2.367983</td>
-<td align="right">53.39284</td>
+<td align="left">robbery</td>
+<td align="left">On or near Cecil Road</td>
+<td align="right">-2.345447</td>
+<td align="right">53.37487</td>
 </tr>
 </tbody>
 </table>

@@ -216,7 +216,7 @@ datasets <- fromJSON("https://www.nomisweb.co.uk/api/v01/dataset/def.sdmx.json",
   unnest(components.dimension) %>% 
   select(id, name = name.value, description = description.value, parameter = conceptref) %>% 
   filter(stringr::str_detect(name, regex('^.*?\\b(claimant(s)*)\\b.*?\\bage\\b.*?$', ignore_case = T))) %>%
-  distinct(id, name)
+  distinct(id, name, parameter)
 
 # alternatively try the following link in your browser: https://www.nomisweb.co.uk/api/v01/dataset/def.htm?search=*claimant*
 

@@ -522,7 +522,7 @@ datasets &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span cl
 <span class="st">  </span><span class="kw">unnest</span>(components.dimension) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">select</span>(id, <span class="dt">name =</span> name.value, <span class="dt">description =</span> description.value, <span class="dt">parameter =</span> conceptref) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">filter</span>(stringr<span class="op">::</span><span class="kw">str_detect</span>(name, <span class="kw">regex</span>(<span class="st">'^.*?</span><span class="ch">\\</span><span class="st">b(claimant(s)*)</span><span class="ch">\\</span><span class="st">b.*?</span><span class="ch">\\</span><span class="st">bage</span><span class="ch">\\</span><span class="st">b.*?$'</span>, <span class="dt">ignore_case =</span> T))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">distinct</span>(id, name)
+<span class="st">  </span><span class="kw">distinct</span>(id, name, parameter)
 
 <span class="co"># alternatively try the following link in your browser: https://www.nomisweb.co.uk/api/v01/dataset/def.htm?search=*claimant*</span>
 

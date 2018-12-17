@@ -312,7 +312,7 @@ div.tocify {
 <li><code>lng</code> = longitude</li>
 <li><code>date</code> = and optional date in YYYY-MM format</li>
 </ul>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path, 
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path,
                <span class="dt">query =</span> <span class="kw">list</span>(
                  <span class="dt">lat =</span> <span class="fl">53.421813</span>,
                  <span class="dt">lng =</span> <span class="op">-</span><span class="fl">2.330251</span>,
@@ -327,7 +327,7 @@ div.tocify {
 <span class="st">  </span><span class="kw">data.frame</span>()</code></pre></div>
 <p>Finally, we might strip out some of the variables and rename the remaining.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">df &lt;-<span class="st"> </span><span class="kw">select</span>(df,
-             month, category, 
+             month, category,
              <span class="dt">location =</span> location.street.name,
              <span class="dt">long =</span> location.longitude,
              <span class="dt">lat =</span> location.latitude)</code></pre></div>
@@ -400,7 +400,7 @@ div.tocify {
 
 <span class="co"># submit the request</span>
 path &lt;-<span class="st"> &quot;http://api.ratings.food.gov.uk/Establishments&quot;</span>
-request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path, 
+request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path,
              <span class="dt">query =</span> <span class="kw">list</span>(
                <span class="dt">localAuthorityId =</span> <span class="dv">188</span>,
                <span class="dt">BusinessTypeId =</span> <span class="dv">7844</span>,
@@ -534,13 +534,13 @@ parameters &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="
 <span class="st">  </span><span class="kw">map_df</span>(<span class="op">~</span><span class="kw">fromJSON</span>(., <span class="dt">flatten =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">           </span><span class="kw">as.data.frame</span>() <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">           </span><span class="kw">unnest</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">           </span><span class="kw">select</span>(<span class="dt">parameter =</span> structure.codelists.codelist.name.value, 
+<span class="st">           </span><span class="kw">select</span>(<span class="dt">parameter =</span> structure.codelists.codelist.name.value,
                   <span class="dt">description =</span> description.value, value))
 
 <span class="co"># submit the request</span>
 <span class="co"># note that .data.json is appended to the path because we want data in JSON format</span>
 path &lt;-<span class="st"> &quot;https://www.nomisweb.co.uk/api/v01/dataset/NM_162_1.data.json?&quot;</span>
-request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path, 
+request &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="dt">url =</span> path,
              <span class="dt">query =</span> <span class="kw">list</span>(
                <span class="dt">date =</span> <span class="st">&quot;latestMINUS12-latest&quot;</span>,
                <span class="dt">geography =</span> <span class="st">&quot;E08000009&quot;</span>,
@@ -691,7 +691,7 @@ df &lt;-<span class="st"> </span>response <span class="op">%&gt;%</span><span cl
 <span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite)
 
 <span class="co"># add your API key</span>
-api_key &lt;-<span class="st"> &quot;65794a30655841694f694a4b563151694c434a68624763694f694a49557a49314e694a392e65794a7063334d694f694a7a644849756333526c6247786863694973496e4e3159694936496d686c626e4a354c6e4268636e52796157526e5a554230636d466d5a6d39795a43356e62335975645773694c434a70595851694f6a45314e4455774e4445344d7a6373496d46315a434936496e4e30636935765a47456966512e5a547758556872566e57787164554969457357383977356c6b33656e764d66686b5537367264344667416b&quot;</span>
+api_key &lt;-<span class="st"> &quot;&quot;</span>
 
 <span class="co"># identify the API endpoint</span>
 path &lt;-<span class="st"> &quot;https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table&quot;</span>
@@ -710,7 +710,7 @@ query &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt
 
 <span class="co"># submit the API request</span>
 request &lt;-<span class="st"> </span><span class="kw">POST</span>(
-  <span class="dt">url =</span> path, 
+  <span class="dt">url =</span> path,
   <span class="dt">body =</span> query,
   <span class="dt">config =</span> <span class="kw">add_headers</span>(<span class="dt">APIKey =</span> api_key),
   <span class="dt">encode =</span> <span class="st">&quot;json&quot;</span>)

@@ -268,6 +268,72 @@ kable(df %>% arrange(desc(date)), caption = "Count of claimants in  Trafford")
 
 <br />
 
+## Stat-Xplore
+
+[Stat-Xplore](https://stat-xplore.dwp.gov.uk/webapi/jsf/login.xhtml) provides access to a wide variety of statistics published by the [Department of Work and Pensions](https://www.gov.uk/government/organisations/department-for-work-pensions) including Universal Credit, Carers Allowance and Disability Living Allowance.
+
+***Example***: [Housing benefit](https://stat-xplore.dwp.gov.uk/webapi/metadata/hb_full/hb_full.html) claimants in Trafford's LSOA's in August 2018.
+
+- **HTTP verb**: POST
+- **API endpoint URL**: https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table
+- **Selected parameters**: database, measures, dimensions
+- **Headers**: API key
+- **Data format(s)**: JSON
+- **Documentation**: [Stat-Xplore : Open Data API](https://stat-xplore.dwp.gov.uk/webapi/online-help/Open-Data-API.html)
+- **R package**: [stat-xplore-R](https://github.com/davidmillson/stat-xplore-R)
+
+You will need an API key to access the Stat-Xplore API. Just create a free account and copy the API key from your Account information. For more details visit: [https://stat-xplore.dwp.gov.uk/webapi/online-help/Open-Data-API.html](https://stat-xplore.dwp.gov.uk/webapi/online-help/Open-Data-API.html)
+
+```{r}
+# load the necessary R packages
+library(tidyverse) ; library(httr) ; library(jsonlite)
+
+# add your API key
+api_key <- "65794a30655841694f694a4b563151694c434a68624763694f694a49557a49314e694a392e65794a7063334d694f694a7a644849756333526c6247786863694973496e4e3159694936496d686c626e4a354c6e4268636e52796157526e5a554230636d466d5a6d39795a43356e62335975645773694c434a70595851694f6a45314e4455774e4445344d7a6373496d46315a434936496e4e30636935765a47456966512e5a547758556872566e57787164554969457357383977356c6b33656e764d66686b5537367264344667416b"
+
+# identify the API endpoint
+path <- "https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table"
+
+# build your query
+query <- list(database = unbox("str:database:hb_new"),
+              measures = "str:count:hb_new:V_F_HB_NEW",
+              dimensions = c("str:field:hb_new:V_F_HB_NEW:COA_CODE",
+                             "str:field:hb_new:F_HB_NEW_DATE:NEW_DATE_NAME") %>% matrix(),
+              recodes = list(
+                `str:field:hb_new:V_F_HB_NEW:COA_CODE` = list(
+                  map = as.list(paste0("str:value:hb_new:V_F_HB_NEW:COA_CODE:V_C_MASTERGEOG11_LSOA_TO_MSOA:E0", seq(1006074, 1006211, 1)))),
+                `str:field:hb_new:F_HB_NEW_DATE:NEW_DATE_NAME` = list(
+                  map = list("str:value:hb_new:F_HB_NEW_DATE:NEW_DATE_NAME:C_HB_NEW_DATE:201808"))
+              )) %>% toJSON()
+
+# submit the API request
+request <- POST(
+  url = path, 
+  body = query,
+  config = add_headers(APIKey = api_key),
+  encode = "json")
+
+# check for any server error
+# request$status_code
+
+# parse the response
+response <- fromJSON(content(request, as = "text"), flatten = TRUE)
+
+# extract list items and convert to a dataframe
+dimnames <- response$fields$items %>% map(~.$labels %>% unlist)
+values <- response$cubes[[1]]$values
+dimnames(values) <- dimnames
+df <- as.data.frame.table(values, stringsAsFactors = FALSE) %>%
+  as_tibble() %>% 
+  set_names(c(response$fields$label,"value"))
+```
+
+```{r, echo = FALSE}
+head(df) %>% kable(caption = "Housing Benefit claimants at LSOA level, August 2018")
+```
+
+<br />
+
 ## UK Police
 
 The [data.police.uk](https://data.police.uk/) website provides incidents of police recorded crime and anti-social behaviour in England, Wales and Northern Ireland.

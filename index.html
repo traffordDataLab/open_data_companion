@@ -673,6 +673,105 @@ df &lt;-<span class="st"> </span>response <span class="op">%&gt;%</span><span cl
 </table>
 <p><br /></p>
 </div>
+<div id="stat-xplore" class="section level2">
+<h2>Stat-Xplore</h2>
+<p><a href="https://stat-xplore.dwp.gov.uk/webapi/jsf/login.xhtml">Stat-Xplore</a> provides access to a wide variety of statistics published by the <a href="https://www.gov.uk/government/organisations/department-for-work-pensions">Department of Work and Pensions</a> including Universal Credit, Carers Allowance and Disability Living Allowance.</p>
+<p><strong><em>Example</em></strong>: <a href="https://stat-xplore.dwp.gov.uk/webapi/metadata/hb_full/hb_full.html">Housing benefit</a> claimants in Trafford’s LSOA’s in August 2018.</p>
+<ul>
+<li><strong>HTTP verb</strong>: POST</li>
+<li><strong>API endpoint URL</strong>: <a href="https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table" class="uri">https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table</a></li>
+<li><strong>Selected parameters</strong>: database, measures, dimensions</li>
+<li><strong>Headers</strong>: API key</li>
+<li><strong>Data format(s)</strong>: JSON</li>
+<li><strong>Documentation</strong>: <a href="https://stat-xplore.dwp.gov.uk/webapi/online-help/Open-Data-API.html">Stat-Xplore : Open Data API</a></li>
+<li><strong>R package</strong>: <a href="https://github.com/davidmillson/stat-xplore-R">stat-xplore-R</a></li>
+</ul>
+<p>You will need an API key to access the Stat-Xplore API. Just create a free account and copy the API key from your Account information. For more details visit: <a href="https://stat-xplore.dwp.gov.uk/webapi/online-help/Open-Data-API.html" class="uri">https://stat-xplore.dwp.gov.uk/webapi/online-help/Open-Data-API.html</a></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># load the necessary R packages</span>
+<span class="kw">library</span>(tidyverse) ; <span class="kw">library</span>(httr) ; <span class="kw">library</span>(jsonlite)
+
+<span class="co"># add your API key</span>
+api_key &lt;-<span class="st"> &quot;65794a30655841694f694a4b563151694c434a68624763694f694a49557a49314e694a392e65794a7063334d694f694a7a644849756333526c6247786863694973496e4e3159694936496d686c626e4a354c6e4268636e52796157526e5a554230636d466d5a6d39795a43356e62335975645773694c434a70595851694f6a45314e4455774e4445344d7a6373496d46315a434936496e4e30636935765a47456966512e5a547758556872566e57787164554969457357383977356c6b33656e764d66686b5537367264344667416b&quot;</span>
+
+<span class="co"># identify the API endpoint</span>
+path &lt;-<span class="st"> &quot;https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table&quot;</span>
+
+<span class="co"># build your query</span>
+query &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">database =</span> <span class="kw">unbox</span>(<span class="st">&quot;str:database:hb_new&quot;</span>),
+              <span class="dt">measures =</span> <span class="st">&quot;str:count:hb_new:V_F_HB_NEW&quot;</span>,
+              <span class="dt">dimensions =</span> <span class="kw">c</span>(<span class="st">&quot;str:field:hb_new:V_F_HB_NEW:COA_CODE&quot;</span>,
+                             <span class="st">&quot;str:field:hb_new:F_HB_NEW_DATE:NEW_DATE_NAME&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">matrix</span>(),
+              <span class="dt">recodes =</span> <span class="kw">list</span>(
+                <span class="st">`</span><span class="dt">str:field:hb_new:V_F_HB_NEW:COA_CODE</span><span class="st">`</span> =<span class="st"> </span><span class="kw">list</span>(
+                  <span class="dt">map =</span> <span class="kw">as.list</span>(<span class="kw">paste0</span>(<span class="st">&quot;str:value:hb_new:V_F_HB_NEW:COA_CODE:V_C_MASTERGEOG11_LSOA_TO_MSOA:E0&quot;</span>, <span class="kw">seq</span>(<span class="dv">1006074</span>, <span class="dv">1006211</span>, <span class="dv">1</span>)))),
+                <span class="st">`</span><span class="dt">str:field:hb_new:F_HB_NEW_DATE:NEW_DATE_NAME</span><span class="st">`</span> =<span class="st"> </span><span class="kw">list</span>(
+                  <span class="dt">map =</span> <span class="kw">list</span>(<span class="st">&quot;str:value:hb_new:F_HB_NEW_DATE:NEW_DATE_NAME:C_HB_NEW_DATE:201808&quot;</span>))
+              )) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">toJSON</span>()
+
+<span class="co"># submit the API request</span>
+request &lt;-<span class="st"> </span><span class="kw">POST</span>(
+  <span class="dt">url =</span> path, 
+  <span class="dt">body =</span> query,
+  <span class="dt">config =</span> <span class="kw">add_headers</span>(<span class="dt">APIKey =</span> api_key),
+  <span class="dt">encode =</span> <span class="st">&quot;json&quot;</span>)
+
+<span class="co"># check for any server error</span>
+<span class="co"># request$status_code</span>
+
+<span class="co"># parse the response</span>
+response &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span class="kw">content</span>(request, <span class="dt">as =</span> <span class="st">&quot;text&quot;</span>), <span class="dt">flatten =</span> <span class="ot">TRUE</span>)
+
+<span class="co"># extract list items and convert to a dataframe</span>
+dimnames &lt;-<span class="st"> </span>response<span class="op">$</span>fields<span class="op">$</span>items <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">map</span>(<span class="op">~</span>.<span class="op">$</span>labels <span class="op">%&gt;%</span><span class="st"> </span>unlist)
+values &lt;-<span class="st"> </span>response<span class="op">$</span>cubes[[<span class="dv">1</span>]]<span class="op">$</span>values
+<span class="kw">dimnames</span>(values) &lt;-<span class="st"> </span>dimnames
+df &lt;-<span class="st"> </span><span class="kw">as.data.frame.table</span>(values, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">as_tibble</span>() <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">set_names</span>(<span class="kw">c</span>(response<span class="op">$</span>fields<span class="op">$</span>label,<span class="st">&quot;value&quot;</span>))</code></pre></div>
+<table>
+<caption>Housing Benefit claimants at LSOA level, August 2018</caption>
+<thead>
+<tr class="header">
+<th align="left">National - Regional - LA - OAs</th>
+<th align="left">Month</th>
+<th align="right">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Trafford 025A</td>
+<td align="left">201808 (Aug-18)</td>
+<td align="right">137</td>
+</tr>
+<tr class="even">
+<td align="left">Trafford 025B</td>
+<td align="left">201808 (Aug-18)</td>
+<td align="right">36</td>
+</tr>
+<tr class="odd">
+<td align="left">Trafford 025C</td>
+<td align="left">201808 (Aug-18)</td>
+<td align="right">26</td>
+</tr>
+<tr class="even">
+<td align="left">Trafford 027A</td>
+<td align="left">201808 (Aug-18)</td>
+<td align="right">77</td>
+</tr>
+<tr class="odd">
+<td align="left">Trafford 024A</td>
+<td align="left">201808 (Aug-18)</td>
+<td align="right">72</td>
+</tr>
+<tr class="even">
+<td align="left">Trafford 025D</td>
+<td align="left">201808 (Aug-18)</td>
+<td align="right">36</td>
+</tr>
+</tbody>
+</table>
+<p><br /></p>
+</div>
 <div id="uk-police" class="section level2">
 <h2>UK Police</h2>
 <p>The <a href="https://data.police.uk/">data.police.uk</a> website provides incidents of police recorded crime and anti-social behaviour in England, Wales and Northern Ireland.</p>
@@ -741,16 +840,16 @@ df &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
 <tr class="odd">
 <td align="left">2018-04</td>
 <td align="left">robbery</td>
-<td align="left">On or near Parking Area</td>
-<td align="right">-2.352642</td>
-<td align="right">53.38522</td>
+<td align="left">On or near New William Close</td>
+<td align="right">-2.424867</td>
+<td align="right">53.41983</td>
 </tr>
 <tr class="even">
 <td align="left">2018-04</td>
 <td align="left">robbery</td>
-<td align="left">On or near School Road</td>
-<td align="right">-2.319606</td>
-<td align="right">53.42471</td>
+<td align="left">On or near Parking Area</td>
+<td align="right">-2.352642</td>
+<td align="right">53.38522</td>
 </tr>
 <tr class="odd">
 <td align="left">2018-04</td>
@@ -769,16 +868,16 @@ df &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
 <tr class="odd">
 <td align="left">2018-04</td>
 <td align="left">robbery</td>
-<td align="left">On or near Cecil Road</td>
-<td align="right">-2.345447</td>
-<td align="right">53.37487</td>
+<td align="left">On or near Stretford Road</td>
+<td align="right">-2.346899</td>
+<td align="right">53.44621</td>
 </tr>
 <tr class="even">
 <td align="left">2018-04</td>
 <td align="left">robbery</td>
-<td align="left">On or near Cecil Road</td>
-<td align="right">-2.345447</td>
-<td align="right">53.37487</td>
+<td align="left">On or near Petrol Station</td>
+<td align="right">-2.352497</td>
+<td align="right">53.46765</td>
 </tr>
 </tbody>
 </table>

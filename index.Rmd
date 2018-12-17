@@ -272,7 +272,7 @@ kable(df %>% arrange(desc(date)), caption = "Count of claimants in  Trafford")
 
 [Stat-Xplore](https://stat-xplore.dwp.gov.uk/webapi/jsf/login.xhtml) provides access to a wide variety of statistics published by the [Department of Work and Pensions](https://www.gov.uk/government/organisations/department-for-work-pensions) including Universal Credit, Carers Allowance and Disability Living Allowance.
 
-***Example***: [Housing benefit](https://stat-xplore.dwp.gov.uk/webapi/metadata/hb_full/hb_full.html) claimants in Trafford's LSOA's in August 2018.
+***Example***: [Housing benefit](https://stat-xplore.dwp.gov.uk/webapi/metadata/hb_full/hb_full.html) claimants in Trafford's LSOAs in August 2018.
 
 - **HTTP verb**: POST
 - **API endpoint URL**: https://stat-xplore.dwp.gov.uk/webapi/rest/v1/table
